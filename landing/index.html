@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-CN" class="dark landing">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="description" content="Serenity Finance · 把市场情绪变成可执行信号。实时金融情报平台。" />
+    <title>Serenity Finance · 把市场情绪变成信号</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/shared/tokens.css" />
+    <link rel="stylesheet" href="/shared/base.css" />
+    <link rel="stylesheet" href="/landing/styles.css" />
+  </head>
+
+  <body>
+    <a class="sr-skip" href="#main">跳到主内容</a>
+
+    <!-- 装饰层 -->
+    <div class="bg-stage" aria-hidden="true">
+      <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:44rem;height:44rem"></div>
+      <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
+      <div class="bg-orb bg-orb--violet" style="bottom:-14rem;left:25vw;width:36rem;height:36rem"></div>
+      <div class="bg-grid"></div>
+    </div>
+
+    <!-- Topbar -->
+    <header class="topbar reveal" data-stagger="0">
+      <div class="topbar__inner">
+        <a class="brand" href="#top" aria-label="Serenity Finance 首页">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span class="brand__text">
+            <span class="brand__title">Serenity<span class="brand__title-accent">.</span>Finance</span>
+            <span class="brand__sub">Signal · Capital · Edge</span>
+          </span>
+        </a>
+        <nav class="topnav" aria-label="主导航">
+          <a class="topnav__link" href="#capabilities">能力</a>
+          <a class="topnav__link" href="#stats">数据</a>
+          <a class="topnav__link" href="#strategies">策略</a>
+          <a class="topnav__link" href="#cta">定价</a>
+        </nav>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost btn--sm" href="/">登录</a>
+          <a class="btn btn--primary btn--sm" href="#cta">
+            开始使用
+            <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- HERO · Editorial + Live Preview -->
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="kicker reveal" data-stagger="1">
+            <span class="kicker__dot"></span>
+            <span class="mono">Morning Signal</span>
+            <span class="kicker__sep">/</span>
+            <span class="mono" id="hero-date">—</span>
+          </p>
+          <h1 id="hero-title" class="display display--4xl reveal" data-stagger="2">
+            把市场<br />情绪<br />
+            <em class="display__accent">变成信号</em>
+          </h1>
+          <p class="hero__sub reveal" data-stagger="3">
+            Serenity Finance 把 AI 与量化信号实时叠加到你的交易流。<br />
+            低延迟、私密部署、不再为噪声买单。
+          </p>
+          <div class="hero__actions reveal" data-stagger="4">
+            <a class="btn btn--primary btn--xl" href="#cta">
+              免费试用 14 天
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a class="btn btn--outline btn--xl" href="#capabilities">查看演示</a>
+          </div>
+          <ul class="hero__trust reveal" data-stagger="5" role="list" aria-label="信任标识">
+            <li>
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              14 天免费
+            </li>
+            <li>
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              无需信用卡
+            </li>
+            <li>
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              SOC 2 合规
+            </li>
+          </ul>
+        </div>
+
+        <!-- Hero right: live preview -->
+        <aside class="hero__preview reveal" data-stagger="3" aria-label="实时信号预览">
+          <div class="preview-card preview-card--main glass">
+            <header class="preview-card__head">
+              <div>
+                <p class="kicker kicker--muted">PORTFOLIO · LIVE</p>
+                <p class="preview-card__ticker">S&amp;P 500 · Composite</p>
+              </div>
+              <span class="preview-card__pill" id="preview-trend">+0.00%</span>
+            </header>
+
+            <div class="preview-card__big">
+              <strong class="num preview-card__big-num" id="preview-score">--</strong>
+              <span class="preview-card__big-suffix">/ 100</span>
+            </div>
+
+            <svg class="preview-card__chart" id="preview-chart" viewBox="0 0 480 120" aria-hidden="true"></svg>
+
+            <footer class="preview-card__foot">
+              <span class="chip chip--emerald">
+                <span class="preview-card__dot" aria-hidden="true"></span>
+                <span class="mono" id="preview-sentiment">—</span>
+              </span>
+              <span class="mono preview-card__time" id="preview-time">—</span>
+            </footer>
+          </div>
+
+          <div class="preview-card preview-card--side glass">
+            <p class="kicker kicker--cyan">AI · Pulse</p>
+            <strong class="preview-card__side-num num" id="preview-ai">--</strong>
+            <p class="preview-card__side-cap">OpenAI / Anthropic<br />企业部署周环比</p>
+            <svg class="preview-card__side-bars" viewBox="0 0 200 40" aria-hidden="true">
+              <rect x="0"   y="20" width="14" height="20" rx="2" fill="hsla(160 84% 50% / 0.4)"/>
+              <rect x="22"  y="14" width="14" height="26" rx="2" fill="hsla(160 84% 50% / 0.5)"/>
+              <rect x="44"  y="10" width="14" height="30" rx="2" fill="hsla(160 84% 50% / 0.6)"/>
+              <rect x="66"  y="16" width="14" height="24" rx="2" fill="hsla(160 84% 50% / 0.5)"/>
+              <rect x="88"  y="6"  width="14" height="34" rx="2" fill="hsla(160 84% 50% / 0.7)"/>
+              <rect x="110" y="2"  width="14" height="38" rx="2" fill="hsl(160 84% 50%)"/>
+            </svg>
+          </div>
+        </aside>
+      </section>
+
+      <!-- MARQUEE: live quote strip -->
+      <div class="marquee reveal" data-stagger="6" aria-hidden="true">
+        <div class="marquee__viewport">
+          <div class="marquee__track" id="marquee-track"></div>
+        </div>
+      </div>
+
+      <!-- CAPABILITIES: 杂志式交替 -->
+      <section class="capabilities" id="capabilities" aria-labelledby="cap-title">
+        <header class="cap-head reveal" data-stagger="1">
+          <p class="kicker"><span class="kicker__dot"></span>Capabilities</p>
+          <h2 id="cap-title" class="display display--2xl">
+            专为高频决策<br />打造的<span class="display__accent">信号层</span>
+          </h2>
+          <p class="cap-head__sub">三个能力，一套体系。把研究、信号、执行拼到一条直线上。</p>
+        </header>
+
+        <ol class="cap-list" role="list">
+          <li class="cap reveal" data-stagger="2">
+            <span class="cap__index num">01</span>
+            <div class="cap__body">
+              <p class="kicker kicker--cyan">Real-time Sentiment</p>
+              <h3 class="display display--xl cap__title">实时情绪指标</h3>
+              <p class="cap__desc">
+                把新闻、社媒、衍生品定价压成单一数值。0.4 秒内刷新，浏览器原生显示。
+                多源去噪、历史回放，让你的判断不再依赖单一信源。
+              </p>
+              <ul class="cap__points" role="list">
+                <li class="chip chip--cyan">毫秒级延迟</li>
+                <li class="chip chip--cyan">多源去噪</li>
+                <li class="chip chip--cyan">历史回放</li>
+              </ul>
+            </div>
+            <div class="cap__visual glass">
+              <div class="cap-meter">
+                <span class="cap-meter__label">Composite</span>
+                <span class="cap-meter__num num" id="cap-meter">--</span>
+                <div class="cap-meter__bar"><span class="cap-meter__fill" style="--p: 86%"></span></div>
+              </div>
+              <svg class="cap-spark" id="cap-spark" viewBox="0 0 280 64" aria-hidden="true"></svg>
+            </div>
+          </li>
+
+          <li class="cap cap--reverse reveal" data-stagger="3">
+            <span class="cap__index num">02</span>
+            <div class="cap__body">
+              <p class="kicker kicker--emerald">Signal Orchestration</p>
+              <h3 class="display display--xl cap__title">智能信号编排</h3>
+              <p class="cap__desc">
+                把多个低相关信号叠加成单一可执行建议。可视化回测，无需写一行代码。
+                权重可解释，决策可追溯。
+              </p>
+              <ul class="cap__points" role="list">
+                <li class="chip chip--emerald">无代码组合</li>
+                <li class="chip chip--emerald">权重可解释</li>
+                <li class="chip chip--emerald">回测沙盒</li>
+              </ul>
+            </div>
+            <div class="cap__visual glass">
+              <div class="cap-orch">
+                <span class="cap-orch__node" data-x="10%" data-y="20%">News</span>
+                <span class="cap-orch__node" data-x="80%" data-y="15%">Price</span>
+                <span class="cap-orch__node" data-x="15%" data-y="75%">Social</span>
+                <span class="cap-orch__node" data-x="80%" data-y="78%">Derivs</span>
+                <span class="cap-orch__node cap-orch__node--core" data-x="50%" data-y="50%">Signal</span>
+                <svg class="cap-orch__lines" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
+                  <line x1="20" y1="24" x2="100" y2="60" stroke="hsla(160 84% 50% / 0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <line x1="160" y1="18" x2="100" y2="60" stroke="hsla(189 94% 55% / 0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <line x1="30" y1="90" x2="100" y2="60" stroke="hsla(262 83% 65% / 0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <line x1="160" y1="93" x2="100" y2="60" stroke="hsla(189 94% 55% / 0.4)" stroke-width="1" stroke-dasharray="2 3"/>
+                </svg>
+              </div>
+            </div>
+          </li>
+
+          <li class="cap reveal" data-stagger="4">
+            <span class="cap__index num">03</span>
+            <div class="cap__body">
+              <p class="kicker kicker--violet">Private Deploy</p>
+              <h3 class="display display--xl cap__title">私有部署</h3>
+              <p class="cap__desc">
+                金融级安全模型，VPC / 私有云可选。你的数据从未离开你的边界。
+                审计日志、权限分级、SOC 2 Type II 报告。
+              </p>
+              <ul class="cap__points" role="list">
+                <li class="chip chip--violet">SOC 2 Type II</li>
+                <li class="chip chip--violet">VPC 隔离</li>
+                <li class="chip chip--violet">审计日志</li>
+              </ul>
+            </div>
+            <div class="cap__visual glass">
+              <div class="cap-vault">
+                <span class="cap-vault__ring"></span>
+                <span class="cap-vault__core">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l9 4-9 4-9-4 9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg>
+                </span>
+                <span class="cap-vault__label">YOUR BOUNDARY</span>
+              </div>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- STATS BAR -->
+      <section class="stats reveal" id="stats" aria-label="关键数据" data-stagger="5">
+        <div class="stats__inner">
+          <div class="stats__item">
+            <span class="stats__num num">240<span class="stats__plus">+</span></span>
+            <span class="stats__label">机构客户</span>
+          </div>
+          <div class="stats__sep" aria-hidden="true"></div>
+          <div class="stats__item">
+            <span class="stats__num num">$ 1.2<span class="stats__plus">B</span></span>
+            <span class="stats__label">月度交易量</span>
+          </div>
+          <div class="stats__sep" aria-hidden="true"></div>
+          <div class="stats__item">
+            <span class="stats__num num">99.99<span class="stats__plus">%</span></span>
+            <span class="stats__label">服务可用性</span>
+          </div>
+          <div class="stats__sep" aria-hidden="true"></div>
+          <div class="stats__item">
+            <span class="stats__num num">0.4<span class="stats__plus">s</span></span>
+            <span class="stats__label">端到端延迟</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- STRATEGIES: horizontal scroll-snap -->
+      <section class="strategies" id="strategies" aria-labelledby="str-title">
+        <header class="str-head reveal" data-stagger="1">
+          <div>
+            <p class="kicker"><span class="kicker__dot"></span>Recommended</p>
+            <h2 id="str-title" class="display display--2xl">基于你风格的<span class="display__accent">策略包</span></h2>
+          </div>
+          <p class="str-head__sub">横向滑动浏览 · 4 个高频场景</p>
+        </header>
+
+        <div class="str-rail" id="str-rail" tabindex="0" role="region" aria-label="推荐策略包">
+          <article class="str-card glass">
+            <header class="str-card__head">
+              <span class="chip chip--emerald">动量策略</span>
+              <span class="str-card__meta">中等风险 · 日内</span>
+            </header>
+            <h3 class="str-card__title display display--xl">趋势跟随 V2</h3>
+            <p class="str-card__desc">基于 ATR 与波动率聚类的多因子动量模型，过去 12 个月夏普 1.8。</p>
+            <dl class="str-stats">
+              <div><dt>夏普</dt><dd class="num">1.82</dd></div>
+              <div><dt>最大回撤</dt><dd class="num is-down">-7.4%</dd></div>
+              <div><dt>胜率</dt><dd class="num">58%</dd></div>
+            </dl>
+            <button class="btn btn--outline btn--sm str-card__cta" type="button">查看详情 →</button>
+          </article>
+
+          <article class="str-card glass">
+            <header class="str-card__head">
+              <span class="chip chip--cyan">均值回归</span>
+              <span class="str-card__meta">低风险 · 波段</span>
+            </header>
+            <h3 class="str-card__title display display--xl">配对交易 PRO</h3>
+            <p class="str-card__desc">行业 ETF 与成分股的协整配对，适合震荡市。滑点 0.05%，自动再平衡。</p>
+            <dl class="str-stats">
+              <div><dt>夏普</dt><dd class="num">2.14</dd></div>
+              <div><dt>最大回撤</dt><dd class="num is-down">-4.1%</dd></div>
+              <div><dt>胜率</dt><dd class="num">63%</dd></div>
+            </dl>
+            <button class="btn btn--outline btn--sm str-card__cta" type="button">查看详情 →</button>
+          </article>
+
+          <article class="str-card glass">
+            <header class="str-card__head">
+              <span class="chip chip--violet">事件驱动</span>
+              <span class="str-card__meta">高风险 · 财报季</span>
+            </header>
+            <h3 class="str-card__title display display--xl">财报后动量</h3>
+            <p class="str-card__desc">捕获财报后 1-3 日的反转与延续，结合 IV 曲线与情绪打分。</p>
+            <dl class="str-stats">
+              <div><dt>夏普</dt><dd class="num">1.46</dd></div>
+              <div><dt>最大回撤</dt><dd class="num is-down">-12.3%</dd></div>
+              <div><dt>胜率</dt><dd class="num">51%</dd></div>
+            </dl>
+            <button class="btn btn--outline btn--sm str-card__cta" type="button">查看详情 →</button>
+          </article>
+
+          <article class="str-card glass">
+            <header class="str-card__head">
+              <span class="chip chip--emerald">防御策略</span>
+              <span class="str-card__meta">低风险 · 长期</span>
+            </header>
+            <h3 class="str-card__title display display--xl">波动率尾部对冲</h3>
+            <p class="str-card__desc">在 VIX 突破阈值时自动买入保护性期权，回测覆盖 2008/2020 尾部事件。</p>
+            <dl class="str-stats">
+              <div><dt>夏普</dt><dd class="num">1.21</dd></div>
+              <div><dt>最大回撤</dt><dd class="num is-down">-3.8%</dd></div>
+              <div><dt>胜率</dt><dd class="num">72%</dd></div>
+            </dl>
+            <button class="btn btn--outline btn--sm str-card__cta" type="button">查看详情 →</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- CTA: massive full-bleed -->
+      <section class="cta" id="cta" aria-labelledby="cta-title">
+        <div class="cta__card glass">
+          <div class="cta__glow" aria-hidden="true"></div>
+          <div class="cta__content">
+            <p class="kicker"><span class="kicker__dot"></span>Get Started</p>
+            <h2 id="cta-title" class="display display--3xl">
+              7 天内让<br />你的交易流<br />
+              <em class="display__accent">跑起来</em>
+            </h2>
+            <p class="cta__sub">无需信用卡，1 对 1 接入顾问。已经有 240+ 家机构在用。</p>
+            <div class="cta__actions">
+              <a class="btn btn--primary btn--xl" href="mailto:hi@serenity.finance">
+                预约演示
+                <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </a>
+              <a class="btn btn--outline btn--xl" href="#capabilities">了解更多</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer reveal" data-stagger="6">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span>Serenity.Finance</span>
+        </div>
+        <p class="footer__meta mono">© 2026 · 仅供研究用途，不构成投资建议</p>
+        <a class="footer__link" href="/">查看 Signal Board →</a>
+      </div>
+    </footer>
+
+    <script type="module" src="/landing/app.js"></script>
+  </body>
+</html>

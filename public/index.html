@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="description" content="Serenity Finance · Signal Board · 每日 AI 与金融市场信号面板 · 实时刷新" />
+    <title>Signal Board · Serenity Finance</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/shared/tokens.css" />
+    <link rel="stylesheet" href="/shared/base.css" />
+    <link rel="stylesheet" href="/deck.css" />
+  </head>
+
+  <body class="deck">
+    <a class="sr-skip" href="#main">跳到主内容</a>
+
+    <!-- 装饰层 -->
+    <div class="bg-stage" aria-hidden="true">
+      <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:42rem;height:42rem"></div>
+      <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
+      <div class="bg-orb bg-orb--violet" style="bottom:-14rem;left:30vw;width:34rem;height:34rem"></div>
+      <div class="bg-grid"></div>
+      <div class="bg-grain"></div>
+    </div>
+
+    <!-- 数据陈旧提示 -->
+    <div class="stale-flag" role="status" aria-live="polite" hidden>
+      <span class="stale-flag__dot" aria-hidden="true"></span>
+      数据可能已过期，正在重新拉取…
+    </div>
+
+    <!-- 顶部 Topbar (pill) -->
+    <header class="topbar reveal" data-stagger="0">
+      <div class="topbar__inner glass">
+        <a class="brand" href="/" aria-label="Signal Board 首页">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span class="brand__text">
+            <span class="brand__title">Serenity</span>
+            <span class="brand__sub">Signal · Board</span>
+          </span>
+        </a>
+
+        <nav class="topnav" aria-label="主导航">
+          <a class="topnav__link is-active" href="#hero">总览</a>
+          <a class="topnav__link" href="#horizon">走势</a>
+          <a class="topnav__link" href="#metrics">指标</a>
+          <a class="topnav__link" href="#focus">焦点</a>
+          <a class="topnav__link" href="#cadence">节奏</a>
+        </nav>
+
+        <div class="topbar__meta">
+          <span class="live-pill" title="实时同步">
+            <span class="live-pill__dot" aria-hidden="true"></span>
+            <span>Live</span>
+          </span>
+          <span class="status-pill" id="status-pill" aria-live="polite">
+            <span class="status-pill__dot" aria-hidden="true"></span>
+            <span id="status-relative" class="mono">—</span>
+          </span>
+          <span class="date-pill mono" id="topbar-date">—</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Live Ticker (full-bleed) -->
+    <div class="ticker reveal" data-stagger="1" aria-label="实时市场信号滚动条">
+      <span class="ticker__label" aria-hidden="true">Market Pulse</span>
+      <div class="ticker__viewport">
+        <div class="ticker__track" id="ticker-track"></div>
+      </div>
+    </div>
+
+    <main class="page" id="main">
+      <!-- HERO: Editorial brief + Composite + signal cards -->
+      <section class="hero reveal" id="hero" aria-labelledby="hero-title" data-stagger="2">
+        <div class="hero__lede">
+          <p class="kicker">
+            <span class="kicker__dot" aria-hidden="true"></span>
+            Morning Brief · <span id="hero-date" class="mono">—</span>
+          </p>
+          <h1 id="hero-title" class="display display--3xl">
+            今日<br />
+            <em class="display__accent">信号面板</em>
+          </h1>
+          <p class="hero__lede-sub">
+            先看总分、情绪和分项强弱，<br />再决定今天该跟踪哪些方向。
+          </p>
+          <div class="hero__chips">
+            <span class="chip chip--emerald" id="chip-date">
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>
+              <span class="mono">—</span>
+            </span>
+            <span class="chip" id="chip-updated">
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <span class="mono">—</span>
+            </span>
+          </div>
+        </div>
+
+        <aside class="hero__dial" aria-labelledby="composite-label">
+          <div class="dial glass">
+            <header class="dial__head">
+              <p class="kicker kicker--muted" id="composite-label">Composite</p>
+              <span class="dial__trend" id="dial-trend">—</span>
+            </header>
+
+            <div class="dial__ring" id="dial-ring" role="img" aria-label="综合得分">
+              <div class="dial__ring-outer">
+                <div class="dial__ring-inner">
+                  <div class="dial__ring-core">
+                    <strong class="dial__score mono" id="composite-score">--</strong>
+                    <span class="dial__score-suffix">/ 100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="dial__caption" id="summary">暂无数据</p>
+          </div>
+
+          <div class="hero__signals">
+            <article class="signal signal--market glass" aria-labelledby="market-label">
+              <header class="signal__head">
+                <p class="kicker kicker--cyan" id="market-label">Market</p>
+                <span class="signal__pill" id="market-delta">—</span>
+              </header>
+              <strong class="signal__big mono" id="market-sentiment">—</strong>
+              <p class="signal__caption">市场情绪 · 综合打分</p>
+              <svg class="signal__spark" id="market-spark" viewBox="0 0 240 56" aria-hidden="true"></svg>
+            </article>
+
+            <article class="signal signal--ai glass" aria-labelledby="ai-label">
+              <header class="signal__head">
+                <p class="kicker kicker--emerald" id="ai-label">AI Pulse</p>
+                <span class="signal__pill" id="ai-delta">—</span>
+              </header>
+              <strong class="signal__big mono" id="ai-sentiment">—</strong>
+              <p class="signal__caption">AI 热度 · 周环比</p>
+              <svg class="signal__spark" id="ai-spark" viewBox="0 0 240 56" aria-hidden="true"></svg>
+            </article>
+          </div>
+        </aside>
+      </section>
+
+      <!-- HORIZON: stacked area, 6 days -->
+      <section class="horizon reveal" id="horizon" aria-labelledby="horizon-title" data-stagger="3">
+        <header class="section-head section-head--row">
+          <div>
+            <p class="kicker"><span class="kicker__dot"></span>Horizon</p>
+            <h2 id="horizon-title" class="display display--xl">近期 · 综合得分</h2>
+          </div>
+          <div class="horizon__legend" id="horizon-legend">
+            <span class="legend-item"><span class="legend-item__dot legend-item__dot--emerald"></span>综合</span>
+            <span class="legend-item"><span class="legend-item__dot legend-item__dot--cyan"></span>市场</span>
+            <span class="legend-item"><span class="legend-item__dot legend-item__dot--violet"></span>AI</span>
+          </div>
+        </header>
+        <div class="horizon__chart glass" id="horizon-chart" role="img" aria-label="近期综合得分走势"></div>
+      </section>
+
+      <!-- METRICS: 4 cards horizontal scroll-snap -->
+      <section class="metrics reveal" id="metrics" aria-labelledby="metrics-title" data-stagger="4">
+        <header class="section-head section-head--row">
+          <div>
+            <p class="kicker"><span class="kicker__dot"></span>Core Metrics</p>
+            <h2 id="metrics-title" class="display display--xl">关键指标</h2>
+          </div>
+          <a class="view-more metrics__cta" href="#cadence">
+            <span>查看完整走势</span>
+            <span class="view-more__arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+        </header>
+        <div class="metrics__rail" id="metrics-rail"></div>
+      </section>
+
+      <!-- FOCUS: Constellation + Narrative -->
+      <section class="focus reveal" id="focus" aria-labelledby="focus-title" data-stagger="5">
+        <header class="section-head">
+          <p class="kicker"><span class="kicker__dot"></span>Focus Map</p>
+          <h2 id="focus-title" class="display display--xl">今日焦点</h2>
+          <p class="section-head__sub">两个主题域 · 节点大小代表权重 · 线条代表相关性</p>
+        </header>
+        <div class="focus__grid">
+          <div class="focus__constellation glass">
+            <svg class="constellation" id="constellation" viewBox="0 0 720 400" aria-label="焦点星座图"></svg>
+            <div class="constellation__legend">
+              <span class="legend-item"><span class="legend-item__dot legend-item__dot--cyan"></span>市场主题</span>
+              <span class="legend-item"><span class="legend-item__dot legend-item__dot--emerald"></span>AI 主题</span>
+            </div>
+          </div>
+          <div class="focus__narrative">
+            <h3 class="focus__narrative-title">简报</h3>
+            <div class="narrative" id="narrative"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CADENCE: Big trend with annotations -->
+      <section class="cadence reveal" id="cadence" aria-labelledby="cadence-title" data-stagger="6">
+        <header class="section-head section-head--row">
+          <div>
+            <p class="kicker"><span class="kicker__dot"></span>Cadence</p>
+            <h2 id="cadence-title" class="display display--xl">近期节奏</h2>
+          </div>
+          <div class="cadence__stats" id="cadence-stats" aria-live="polite"></div>
+        </header>
+        <div class="cadence__chart glass" id="cadence-chart" role="img" aria-label="近期综合得分节奏"></div>
+        <footer class="cadence__foot">
+          <span class="status-pill is-live">
+            <span class="status-pill__dot" aria-hidden="true"></span>
+            <span>实时同步</span>
+          </span>
+          <a class="view-more" href="/archive">
+            <span>查看完整归档</span>
+            <span class="view-more__arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+        </footer>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <span class="footer__brand">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span>Serenity.Finance</span>
+        </span>
+        <p class="footer__meta mono">© 2026 · 仅供研究用途，不构成投资建议</p>
+        <a class="footer__link" href="/landing/">产品介绍 →</a>
+      </div>
+    </footer>
+
+    <script type="module" src="/deck.js"></script>
+  </body>
+</html>

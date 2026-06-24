@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="description" content="Serenity Finance · 历史日报归档 · Signal Board Archive" />
+    <title>Archive · Signal Board</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/shared/tokens.css" />
+    <link rel="stylesheet" href="/shared/base.css" />
+    <link rel="stylesheet" href="/archive.css" />
+  </head>
+
+  <body class="archive">
+    <a class="sr-skip" href="#main">跳到主内容</a>
+
+    <div class="bg-stage" aria-hidden="true">
+      <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:42rem;height:42rem"></div>
+      <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
+      <div class="bg-orb bg-orb--violet" style="bottom:-14rem;left:30vw;width:34rem;height:34rem"></div>
+      <div class="bg-grid"></div>
+    </div>
+
+    <!-- Topbar -->
+    <header class="topbar reveal" data-stagger="0">
+      <div class="topbar__inner">
+        <a class="brand" href="/" aria-label="Signal Board 首页">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span class="brand__text">
+            <span class="brand__title">Serenity</span>
+            <span class="brand__sub">Archive · Daily Brief</span>
+          </span>
+        </a>
+        <nav class="topnav" aria-label="主导航">
+          <a class="topnav__link" href="/">Signal Board</a>
+          <a class="topnav__link is-active" href="/archive">Archive</a>
+          <a class="topnav__link" href="/landing/">About</a>
+        </nav>
+        <div class="topbar__actions">
+          <a class="view-more view-more--ghost" href="/">
+            <span>Back to Board</span>
+            <span class="view-more__arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page" id="main">
+      <!-- Page Header -->
+      <section class="page-head reveal" data-stagger="1">
+        <p class="kicker">
+          <span class="kicker__dot"></span>
+          <span class="mono">Archive</span>
+          <span class="kicker__sep">/</span>
+          <span class="mono" id="archive-count">— entries</span>
+        </p>
+        <h1 class="display display--2xl">历史日报<br />完整<span class="display__accent">归档</span></h1>
+        <p class="page-head__sub">
+          所有日报按日期倒序排列 · 点击展开查看完整内容
+        </p>
+
+        <div class="archive-filters">
+          <div class="archive-filters__search">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+            </svg>
+            <input type="search" id="archive-search" placeholder="搜索标题或内容..." class="archive-filters__input" />
+          </div>
+          <div class="archive-filters__chips" id="archive-filter-chips" role="tablist" aria-label="情绪筛选">
+            <button class="filter-chip is-active" data-filter="all" type="button">全部</button>
+            <button class="filter-chip" data-filter="up" type="button">
+              <span class="filter-chip__dot filter-chip__dot--up"></span>偏强
+            </button>
+            <button class="filter-chip" data-filter="neutral" type="button">
+              <span class="filter-chip__dot filter-chip__dot--neutral"></span>中性
+            </button>
+            <button class="filter-chip" data-filter="down" type="button">
+              <span class="filter-chip__dot filter-chip__dot--down"></span>偏弱
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Archive List -->
+      <section class="archive-list" id="archive-list" aria-label="日报列表">
+        <div class="archive-list__skeleton" id="archive-skeleton">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </section>
+
+      <div class="archive-empty" id="archive-empty" hidden>
+        <p class="kicker kicker--muted"><span class="kicker__dot"></span>EMPTY</p>
+        <p class="archive-empty__text">没有匹配的日报</p>
+      </div>
+
+      <div class="archive-end" id="archive-end" hidden>
+        <span class="archive-end__line"></span>
+        <span class="archive-end__text">— END —</span>
+        <span class="archive-end__line"></span>
+      </div>
+    </main>
+
+    <footer class="footer reveal" data-stagger="2">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <span class="brand__mark" aria-hidden="true">
+            <span class="brand__mark-core"></span>
+          </span>
+          <span>Serenity.Finance</span>
+        </div>
+        <p class="footer__meta mono">© 2026 · 仅供研究用途，不构成投资建议</p>
+        <a class="view-more view-more--ghost" href="/">
+          <span>Back to Signal Board</span>
+          <span class="view-more__arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </span>
+        </a>
+      </div>
+    </footer>
+
+    <script type="module" src="/archive.js"></script>
+  </body>
+</html>

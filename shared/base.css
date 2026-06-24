@@ -1,0 +1,524 @@
+/* =============================================================
+ * Serenity Finance · Shared Base
+ * 双页共享：reset + base + typography + focus + primitives
+ * 不包含任何页面专属 layout / 组件
+ * 依赖：tokens.css (auto-generated)
+ * ============================================================= */
+
+@import url("./tokens.css");
+
+/* ============================================================
+ * 1. CSS Reset (精简版)
+ * ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--font-leading-normal);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  letter-spacing: var(--font-tracking-normal);
+  -webkit-font-feature-settings: "ss01" on, "cv11" on;
+          font-feature-settings: "ss01" on, "cv11" on;
+  overflow-x: hidden;
+  position: relative;
+}
+
+h1, h2, h3, h4, h5, h6,
+p, ul, ol, dl, dd, figure, blockquote {
+  margin: 0;
+  padding: 0;
+}
+
+ul, ol { list-style: none; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img, svg, video, canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: hsla(160 70% 42% / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* ============================================================
+ * 2. 全局焦点 (a11y)
+ * ============================================================ */
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-ring);
+  border-radius: var(--radius-xs);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip link */
+.sr-skip {
+  position: fixed;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: var(--z-toast);
+  padding: var(--space-2) var(--space-4);
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: var(--border-width-thin) solid hsl(var(--ring));
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transform: translateY(calc(-100% - var(--space-4)));
+  transition: transform var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.sr-skip:focus-visible {
+  transform: translateY(0);
+}
+
+/* ============================================================
+ * 3. 数字 / mono 排版
+ * ============================================================ */
+
+.num,
+.mono {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--font-tracking-normal);
+}
+
+.serif {
+  font-family: var(--font-family-serif);
+  font-style: italic;
+  font-weight: var(--font-weight-regular);
+}
+
+/* ============================================================
+ * 4. 排版原语 (在任何页面复用)
+ * ============================================================ */
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-widest);
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+}
+
+.kicker__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: hsl(var(--primary));
+  box-shadow: 0 0 10px hsl(var(--primary));
+}
+
+.kicker--cyan { color: hsl(var(--secondary)); }
+.kicker--cyan .kicker__dot { background: hsl(var(--secondary)); box-shadow: 0 0 10px hsl(var(--secondary)); }
+
+.kicker--violet { color: hsl(var(--accent)); }
+.kicker--violet .kicker__dot { background: hsl(var(--accent)); box-shadow: 0 0 10px hsl(var(--accent)); }
+
+.kicker--muted { color: hsl(var(--muted-foreground)); }
+.kicker--muted .kicker__dot { background: hsl(var(--muted-foreground)); box-shadow: none; }
+
+.display {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-tight);
+  line-height: var(--font-leading-tight);
+  color: hsl(var(--foreground));
+}
+
+.display--xl  { font-size: clamp(var(--font-size-3xl), 4.5vw, var(--font-size-5xl)); }
+.display--2xl { font-size: clamp(var(--font-size-4xl), 6.5vw, var(--font-size-6xl)); }
+.display--3xl { font-size: clamp(var(--font-size-5xl), 9vw,   var(--font-size-7xl)); }
+.display--4xl { font-size: clamp(var(--font-size-6xl), 12vw,  var(--font-size-8xl)); }
+
+.display__accent {
+  font-family: var(--font-family-serif);
+  font-style: italic;
+  font-weight: var(--font-weight-regular);
+  background: linear-gradient(120deg, hsl(160 70% 42%) 0%, hsl(189 80% 50%) 50%, hsl(262 70% 65%) 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  letter-spacing: var(--font-tracking-snug);
+}
+
+/* ============================================================
+ * 5. Chip / Pill 原语
+ * ============================================================ */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  background: hsla(0 0% 100% / 0.04);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.08);
+  color: hsl(var(--muted-foreground));
+}
+
+.chip--emerald {
+  background: hsla(160 70% 42% / 0.1);
+  border-color: hsla(160 70% 42% / 0.3);
+  color: hsl(160 70% 50%);
+}
+
+.chip--cyan {
+  background: hsla(189 80% 50% / 0.1);
+  border-color: hsla(189 80% 50% / 0.3);
+  color: hsl(189 80% 55%);
+}
+
+.chip--violet {
+  background: hsla(262 70% 60% / 0.12);
+  border-color: hsla(262 70% 60% / 0.32);
+  color: hsl(262 70% 65%);
+}
+
+/* ============================================================
+ * 6. 按钮 (shadcn 风格 variants)
+ * ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  border: var(--border-width-thin) solid transparent;
+  transition: all var(--motion-duration-fast) var(--motion-easing-out);
+  user-select: none;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn--sm { height: 2.25rem; padding: 0 var(--space-4); font-size: var(--font-size-sm); }
+.btn--md { height: 2.625rem; padding: 0 var(--space-5); font-size: var(--font-size-sm); }
+.btn--lg { height: 3rem; padding: 0 var(--space-6); font-size: var(--font-size-base); }
+.btn--xl { height: 3.5rem; padding: 0 var(--space-8); font-size: var(--font-size-lg); border-radius: var(--radius-lg); }
+
+.btn--primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--shadow-glow-violet);
+  font-weight: var(--font-weight-semibold);
+}
+
+.btn--primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 0 60px hsla(262 70% 60% / 0.5);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+
+.btn--ghost:hover {
+  color: hsl(var(--foreground));
+  background: hsla(0 0% 100% / 0.04);
+}
+
+.btn--outline {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border-color: hsla(0 0% 100% / 0.12);
+}
+
+.btn--outline:hover {
+  background: hsla(0 0% 100% / 0.04);
+  border-color: hsl(160 70% 42%);
+}
+
+.btn__icon {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+ * 7. 玻璃卡片 (基础层)
+ * ============================================================ */
+
+.glass {
+  position: relative;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.6), hsla(240 12% 5% / 0.5));
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--border-width-thin);
+  background: linear-gradient(135deg, hsla(160 70% 42% / 0.4), transparent 50%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+          mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ============================================================
+ * 8. 背景装饰层 (双页共用, 可关闭)
+ * ============================================================ */
+
+.bg-stage {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, hsla(160 70% 42% / 0.22), transparent 60%),
+    radial-gradient(ellipse 60% 60% at 100% 50%, hsla(262 70% 60% / 0.18), transparent 60%),
+    hsl(var(--background));
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.4;
+}
+
+.bg-orb--emerald { background: radial-gradient(circle, hsla(160 70% 42% / 0.7), transparent 65%); }
+.bg-orb--cyan    { background: radial-gradient(circle, hsla(189 80% 50% / 0.55), transparent 65%); }
+.bg-orb--violet  { background: radial-gradient(circle, hsla(262 70% 60% / 0.45), transparent 65%); }
+
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(hsla(240 8% 50% / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(240 8% 50% / 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at center, black 30%, transparent 80%);
+}
+
+.bg-grain {
+  position: absolute;
+  inset: 0;
+  opacity: var(--opacity-5);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* ============================================================
+ * 9. Module Padding 规范 (页面级, 替代散落 padding)
+ * - 6 阶阶梯, 对应不同模块尺寸
+ * - 模块 (card / panel / chart container) 必须从这 6 阶选
+ * - 元素级 (chip / pill / icon) 用 size-* 工具
+ * ============================================================ */
+
+.pad-xs { padding: var(--space-2); }                /* 8px  - micro */
+.pad-sm { padding: var(--space-3); }                /* 12px - compact */
+.pad-md { padding: var(--space-4); }                /* 16px - standard */
+.pad-lg { padding: var(--space-6); }                /* 24px - comfortable */
+.pad-xl { padding: var(--space-8); }                /* 32px - spacious */
+.pad-2xl { padding: var(--space-12); }              /* 48px - hero */
+
+.pad-x-sm { padding-inline: var(--space-3); }       /* 紧凑水平 */
+.pad-x-md { padding-inline: var(--space-4); }       /* 标准水平 */
+.pad-x-lg { padding-inline: var(--space-6); }       /* 舒适水平 */
+.pad-x-xl { padding-inline: var(--space-8); }       /* 宽水平 */
+
+.pad-y-sm { padding-block: var(--space-3); }        /* 紧凑垂直 */
+.pad-y-md { padding-block: var(--space-4); }        /* 标准垂直 */
+.pad-y-lg { padding-block: var(--space-6); }        /* 舒适垂直 */
+.pad-y-xl { padding-block: var(--space-8); }        /* 宽垂直 */
+.pad-y-2xl { padding-block: var(--space-12); }      /* 英雄垂直 */
+
+.gap-xs { gap: var(--space-2); }
+.gap-sm { gap: var(--space-3); }
+.gap-md { gap: var(--space-4); }
+.gap-lg { gap: var(--space-6); }
+.gap-xl { gap: var(--space-8); }
+
+/* ============================================================
+ * 9.5. View More / Link Arrow 组件 (替代 btn--ghost 用于"查看更多")
+ * - 默认 muted 色 + arrow
+ * - hover 变 primary + arrow 右移 4px
+ * - 整体比 btn--ghost 更明确, 有方向感
+ * ============================================================ */
+
+.view-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--muted-foreground));
+  background: hsla(0 0% 100% / 0.04);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  transition: color var(--motion-duration-fast) var(--motion-easing-out),
+              background var(--motion-duration-fast) var(--motion-easing-out),
+              border-color var(--motion-duration-fast) var(--motion-easing-out),
+              transform var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.view-more__arrow {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.view-more:hover {
+  color: hsl(var(--primary));
+  background: hsla(160 70% 42% / 0.08);
+  border-color: hsla(160 70% 42% / 0.3);
+}
+
+.view-more:hover .view-more__arrow {
+  transform: translateX(4px);
+}
+
+.view-more--violet:hover {
+  color: hsl(var(--accent));
+  background: hsla(262 70% 60% / 0.08);
+  border-color: hsla(262 70% 60% / 0.3);
+}
+
+.view-more--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.view-more--ghost:hover {
+  background: hsla(160 70% 42% / 0.06);
+  border-color: transparent;
+}
+
+/* 简单 link-arrow (无背景, 纯文字 + 箭头) */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--muted-foreground));
+  transition: color var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.link-arrow__arrow {
+  transition: transform var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.link-arrow:hover {
+  color: hsl(var(--primary));
+}
+
+.link-arrow:hover .link-arrow__arrow {
+  transform: translateX(4px);
+}
+
+/* ============================================================
+ * 10. Reveal 动画 (页面级)
+ * ============================================================ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 900ms var(--motion-easing-out),
+    transform 900ms var(--motion-easing-out);
+  transition-delay: calc(var(--stagger, 0) * 110ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal--up    { transform: translateY(0) scale(0.96); }
+.reveal--fade  { transform: none; }
+
+.reveal.is-visible.reveal--up { transform: translateY(0) scale(1); }
+
+/* ============================================================
+ * 10. 减弱动效
+ * ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}

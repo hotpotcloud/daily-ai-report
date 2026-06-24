@@ -1,0 +1,1201 @@
+/* =============================================================
+ * Signal Board · 仪表盘专属样式 (Command Deck v2)
+ * 依赖：shared/tokens.css + shared/base.css
+ *
+ * PADDING 规范 (严格遵守):
+ *   - micro:    var(--space-2)  8px   — chip / pill 内部
+ *   - compact:  var(--space-3)  12px  — tight card (signal, narrative-card)
+ *   - standard: var(--space-4)  16px  — standard card (metric, preview)
+ *   - comfort:  var(--space-6)  24px  — comfortable (dial, str-card)
+ *   - spacious: var(--space-8)  32px  — chart container / visual
+ *   - hero:     var(--space-12) 48px  — hero section
+ *   - drama:    var(--space-20) 80px  — CTA card
+ * ============================================================= */
+
+.deck {
+  /* 响应式 max-width:
+   * - 小屏 (< 1400px): 100% - 边距
+   * - 中屏 (1400-1800px): 锁定 1400-1800px
+   * - 大屏 (≥ 1800px): 限制 1800px (更舒展, 不留过多空白)
+   */
+  --rail-max-width: clamp(1400px, 92vw, 1800px);
+}
+
+/* ============================================================
+ * 0. 页面布局
+ * ============================================================ */
+
+.page {
+  position: relative;
+  z-index: var(--z-raised);
+  width: min(100%, calc(100% - 48px));
+  max-width: var(--rail-max-width);
+  margin: 0 auto;
+  padding-block: var(--space-12) var(--space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+@media (max-width: 768px) {
+  .page {
+    width: calc(100% - 24px);
+    padding-block: var(--space-8) var(--space-16);
+    gap: var(--space-16);
+  }
+}
+
+/* ============================================================
+ * 1. Topbar (sticky pill)
+ * - 内部: brand | nav | meta  (gap-md)
+ * - 内边距: py-sm px-md (上紧凑,左右标准)
+ * ============================================================ */
+
+.topbar {
+  position: sticky;
+  top: var(--space-4);
+  z-index: var(--z-sticky);
+  width: min(100%, calc(100% - 48px));
+  max-width: var(--rail-max-width);
+  margin: var(--space-4) auto 0;
+}
+
+/* 顶部 ticker: 全宽 (不被 max-width 限制) */
+
+.topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3) var(--space-4);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.85), hsla(240 12% 5% / 0.75));
+  box-shadow: var(--shadow-topbar);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+.topbar__inner::before {
+  background: linear-gradient(135deg, hsla(160 70% 42% / 0.45), transparent 60%);
+}
+
+/* Brand */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+}
+
+.brand__mark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: hsla(240 8% 18% / 0.8);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.1);
+  overflow: hidden;
+}
+
+.brand__mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    from 180deg,
+    hsl(var(--primary)) 0deg,
+    hsl(var(--secondary)) 90deg,
+    hsl(var(--accent)) 180deg,
+    hsl(var(--primary)) 360deg
+  );
+  opacity: 0.7;
+  filter: blur(6px);
+}
+
+.brand__mark-core {
+  position: relative;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: hsl(var(--background));
+  box-shadow: 0 0 0 2px hsla(0 0% 100% / 0.7);
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--font-leading-tight);
+}
+
+.brand__title {
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--font-tracking-snug);
+}
+
+.brand__sub {
+  font-size: var(--font-size-2xs);
+  color: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Topnav */
+.topnav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.04);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+.topnav__link {
+  position: relative;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: hsl(var(--muted-foreground));
+  transition: color var(--motion-duration-fast) var(--motion-easing-out),
+              background var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.topnav__link:hover { color: hsl(var(--foreground)); }
+
+.topnav__link.is-active {
+  color: hsl(var(--foreground));
+  background: hsla(160 70% 42% / 0.16);
+  box-shadow: inset 0 0 0 var(--border-width-thin) hsla(160 70% 42% / 0.3);
+}
+
+/* Meta group: live + status + date */
+.topbar__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+  color: hsl(160 70% 50%);
+  background: hsla(160 70% 42% / 0.1);
+  border: var(--border-width-thin) solid hsla(160 70% 42% / 0.3);
+}
+
+.live-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: hsl(160 70% 42%);
+  box-shadow: 0 0 10px hsl(160 70% 42%);
+  animation: pulse 1.8s var(--motion-easing-out) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  background: hsla(0 0% 100% / 0.04);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  color: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.status-pill__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: hsl(var(--muted-foreground));
+}
+
+.status-pill.is-live .status-pill__dot {
+  background: hsl(160 70% 42%);
+  box-shadow: 0 0 8px hsl(160 70% 42%);
+  animation: pulse 1.8s var(--motion-easing-out) infinite;
+}
+
+.status-pill.is-stale .status-pill__dot {
+  background: hsl(189 80% 50%);
+}
+
+.date-pill {
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  background: hsla(0 0% 100% / 0.04);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+@media (max-width: 1024px) {
+  .topnav { display: none; }
+  .topbar__inner { padding-inline: var(--space-3); }
+}
+
+@media (max-width: 640px) {
+  .brand__sub,
+  .live-pill span:last-child,
+  .date-pill { display: none; }
+}
+
+/* ============================================================
+ * 2. Ticker (full-bleed strip)
+ * - 内部 padding-y-sm, 高度更舒展
+ * - label 与 track 之间 gap-md
+ * ============================================================ */
+
+.ticker {
+  position: relative;
+  z-index: var(--z-raised);
+  margin: var(--space-3) auto 0;
+  width: min(100%, calc(100% - 48px));
+  max-width: var(--rail-max-width);
+  padding-block: var(--space-3);
+  border-top: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  border-bottom: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  background: linear-gradient(180deg, hsla(240 10% 6% / 0.5), hsla(240 15% 4% / 0.6));
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ticker__label {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  margin-left: var(--space-4);
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+  color: hsl(189 80% 55%);
+  background: hsla(189 80% 50% / 0.1);
+  border: var(--border-width-thin) solid hsla(189 80% 50% / 0.3);
+}
+
+.ticker__viewport {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+}
+
+.ticker__track {
+  display: flex;
+  gap: var(--space-3);
+  padding-left: var(--space-3);
+  flex-shrink: 0;
+  animation: ticker-scroll 60s linear infinite;
+}
+
+.ticker:hover .ticker__track { animation-play-state: paused; }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.03);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.05);
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ticker-item__key {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-wide);
+  text-transform: uppercase;
+  font-size: var(--font-size-2xs);
+}
+
+.ticker-item__value {
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--foreground));
+}
+
+.ticker-item__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-block: 2px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-item__delta.is-up   { color: hsl(160 70% 50%); background: hsla(160 70% 42% / 0.1); }
+.ticker-item__delta.is-down { color: hsl(0 72% 60%);    background: hsla(0 72% 55% / 0.1); }
+.ticker-item__delta.is-flat { color: hsl(var(--muted-foreground)); background: hsla(0 0% 100% / 0.04); }
+
+/* ============================================================
+ * 3. Stale Flag (固定右上角)
+ * - 紧凑 py-xs px-sm
+ * ============================================================ */
+
+.stale-flag {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: var(--z-overlay);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  background: hsla(189 80% 50% / 0.1);
+  border: var(--border-width-thin) solid hsla(189 80% 50% / 0.32);
+  color: hsl(189 80% 60%);
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--font-tracking-wider);
+}
+
+.stale-flag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: hsl(189 80% 50%);
+  box-shadow: 0 0 8px hsl(189 80% 50%);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+body.is-stale .stale-flag { display: inline-flex; }
+
+/* ============================================================
+ * 4. Hero — Editorial
+ * - 段 padding: py-2xl (48px 顶, 48px 底)
+ * - 内部 grid: gap-2xl (48px)
+ * - lede 内部 flex gap-lg (24px)
+ * - dial + signal 内部 padding 单独定义
+ * ============================================================ */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: stretch;
+  padding-block: var(--space-12);
+}
+
+.hero__lede {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-block: var(--space-2);
+}
+
+.hero__lede .display { margin: 0; }
+
+.hero__lede-sub {
+  max-width: 38ch;
+  font-size: var(--font-size-lg);
+  line-height: var(--font-leading-relaxed);
+  color: hsl(var(--muted-foreground));
+}
+
+.hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.hero__dial {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.hero__signals {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    padding-block: var(--space-8);
+  }
+  .hero__dial { grid-template-columns: 1fr; }
+  .hero__signals {
+    grid-template-rows: auto;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__signals { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+ * 5. Dial (composite ring) — comfort padding (24px)
+ * - 内部 gap-lg (24px) 让 head / ring / caption 呼吸
+ * ============================================================ */
+
+.dial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  min-height: 100%;
+  position: relative;
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.8), hsla(240 12% 5% / 0.7));
+}
+
+.dial__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-1);
+}
+
+.dial__trend {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(160 70% 50%);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  background: hsla(160 70% 42% / 0.1);
+  border: var(--border-width-thin) solid hsla(160 70% 42% / 0.25);
+}
+
+.dial__ring {
+  position: relative;
+  margin: 0 auto;
+  width: 240px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    hsl(var(--primary)) 0deg,
+    hsl(var(--secondary)) 0deg,
+    hsla(0 0% 100% / 0.06) 0deg
+  );
+  filter: drop-shadow(0 12px 40px hsla(var(--primary) / 0.18));
+  transition: background var(--motion-duration-lazy) var(--motion-easing-out);
+}
+
+.dial__ring-outer {
+  width: calc(100% - 18px);
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 30%, hsla(var(--primary) / 0.14), transparent 50%),
+    radial-gradient(circle at 70% 70%, hsla(var(--accent) / 0.08), transparent 50%),
+    hsl(var(--background));
+  box-shadow:
+    inset 0 0 0 var(--border-width-thin) hsla(0 0% 100% / 0.06),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.dial__ring-inner {
+  width: calc(100% - 14px);
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 70% 30%, hsla(var(--secondary) / 0.08), transparent 50%),
+    hsl(var(--background));
+  box-shadow: inset 0 0 0 var(--border-width-thin) hsla(0 0% 100% / 0.04);
+}
+
+.dial__ring-core {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: var(--font-leading-tight);
+}
+
+.dial__score {
+  font-family: var(--font-family-display);
+  font-size: 88px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.06em;
+  background: linear-gradient(180deg, hsl(var(--foreground)) 0%, hsl(var(--muted-foreground)) 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+.dial__score-suffix {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--font-tracking-wider);
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  font-family: var(--font-family-mono);
+}
+
+.dial__caption {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--font-size-sm);
+  line-height: var(--font-leading-relaxed);
+  text-align: center;
+  max-width: 32ch;
+  margin: 0 auto;
+  padding-block: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .dial__ring { width: 200px; }
+  .dial__score { font-size: 72px; }
+}
+
+/* ============================================================
+ * 6. Signal cards (Market / AI) — compact padding (24px)
+ * - 内部 gap-sm (12px) 让 head/big/caption/spark 紧凑排布
+ * ============================================================ */
+
+.signal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: transform var(--motion-duration-base) var(--motion-easing-out);
+  overflow: hidden;
+}
+
+.signal:hover { transform: translate3d(0, -3px, 0); }
+
+.signal--market {
+  background: linear-gradient(180deg, hsla(189 80% 50% / 0.08), hsla(240 12% 5% / 0.6));
+}
+.signal--market::before {
+  background: linear-gradient(135deg, hsla(189 80% 50% / 0.4), transparent 60%);
+}
+
+.signal--ai {
+  background: linear-gradient(180deg, hsla(160 70% 42% / 0.08), hsla(240 12% 5% / 0.6));
+}
+.signal--ai::before {
+  background: linear-gradient(135deg, hsla(160 70% 42% / 0.45), transparent 60%);
+}
+
+.signal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-1);
+}
+
+.signal__pill {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--muted-foreground));
+  padding-block: 3px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.05);
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.signal__big {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.04em;
+  line-height: var(--font-leading-tight);
+  margin: 0;
+}
+
+.signal__caption {
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wide);
+  margin: 0;
+}
+
+.signal__spark {
+  width: 100%;
+  height: 56px;
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+/* ============================================================
+ * 7. Section Head — 段标题 (margin 替代 padding)
+ * - margin-bottom-xl (32px) 拉开与下方内容
+ * - 内部 gap-sm (12px) kicker / title / sub 节奏
+ * ============================================================ */
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.section-head--row {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.section-head h2 { margin: 0; }
+
+.section-head__sub {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--font-size-sm);
+  max-width: 60ch;
+  line-height: var(--font-leading-relaxed);
+}
+
+/* ============================================================
+ * 8. Horizon chart (stacked area) — spacious padding (32px)
+ * - 图表容器需要更多呼吸
+ * ============================================================ */
+
+.horizon { display: flex; flex-direction: column; }
+
+.horizon__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.03);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.legend-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 10px currentColor;
+}
+
+.legend-item__dot--emerald { background: hsl(160 70% 42%); color: hsl(160 70% 42%); }
+.legend-item__dot--cyan    { background: hsl(189 80% 50%); color: hsl(189 80% 50%); }
+.legend-item__dot--violet  { background: hsl(262 70% 60%); color: hsl(262 70% 60%); }
+
+.horizon__chart {
+  height: 320px;
+  padding: var(--space-8);
+  position: relative;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(180deg, hsla(240 10% 8% / 0.8), hsla(240 12% 5% / 0.7)),
+    repeating-linear-gradient(0deg, transparent 0 79px, hsla(0 0% 100% / 0.03) 79px 80px),
+    repeating-linear-gradient(90deg, transparent 0 79px, hsla(0 0% 100% / 0.03) 79px 80px);
+}
+
+.horizon__chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+@media (max-width: 640px) {
+  .horizon__chart { height: 240px; padding: var(--space-4); }
+}
+
+/* ============================================================
+ * 9. Metrics rail (horizontal scroll-snap)
+ * - 卡片 standard padding (24px) 与 signal 一致
+ * - 进度条与内边距同步
+ * ============================================================ */
+
+.metrics__rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+  .metrics__rail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: var(--space-2);
+    gap: var(--space-3);
+    -webkit-overflow-scrolling: touch;
+  }
+  .metrics__rail::-webkit-scrollbar { display: none; }
+}
+
+.metric {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.7), hsla(240 12% 5% / 0.6));
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  scroll-snap-align: start;
+  flex: 0 0 280px;
+  overflow: hidden;
+  transition: transform var(--motion-duration-base) var(--motion-easing-out),
+              border-color var(--motion-duration-base) var(--motion-easing-out);
+}
+
+.metric:hover {
+  transform: translate3d(0, -3px, 0);
+  border-color: hsla(160 70% 42% / 0.3);
+}
+
+.metric__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.metric__label {
+  font-size: var(--font-size-sm);
+  color: hsl(var(--muted-foreground));
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.metric__score {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-wide);
+  color: hsl(var(--foreground));
+  padding-block: 3px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.05);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+.metric__value {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.04em;
+  line-height: var(--font-leading-tight);
+  color: hsl(var(--foreground));
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.metric__suffix {
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-family-mono);
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+}
+
+.metric__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.05);
+  color: hsl(var(--muted-foreground));
+  font-size: var(--font-size-xs);
+  width: max-content;
+  font-family: var(--font-family-mono);
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.metric__trend.is-up   { color: hsl(160 70% 50%); border: var(--border-width-thin) solid hsla(160 70% 42% / 0.25); }
+.metric__trend.is-down { color: hsl(0 72% 60%);    border: var(--border-width-thin) solid hsla(0 72% 55% / 0.25); }
+
+.metric__spark {
+  width: 100%;
+  height: 40px;
+  margin-top: var(--space-2);
+}
+
+.metric__bar {
+  position: absolute;
+  left: var(--space-6);
+  right: var(--space-6);
+  bottom: var(--space-3);
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: hsla(0 0% 100% / 0.04);
+  overflow: hidden;
+}
+
+.metric__bar-fill {
+  height: 100%;
+  width: calc(var(--metric-value, 0) * 1%);
+  background: linear-gradient(90deg, hsl(160 70% 42%), hsl(189 80% 50%), hsl(262 70% 60%));
+  border-radius: inherit;
+  box-shadow: 0 0 12px hsla(160 70% 42% / 0.4);
+  transition: width var(--motion-duration-lazy) var(--motion-easing-out);
+}
+
+.metric.is-flash .metric__bar-fill {
+  animation: bar-pulse var(--motion-duration-lazy) var(--motion-easing-out);
+}
+
+@keyframes bar-pulse {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+.metrics__cta { flex-shrink: 0; }
+
+/* ============================================================
+ * 10. Focus: Constellation + Narrative
+ * - constellation card: spacious (32px)
+ * - narrative card: compact (20px 24px)
+ * ============================================================ */
+
+.focus__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+  .focus__grid { grid-template-columns: 1fr; }
+}
+
+.focus__constellation {
+  position: relative;
+  height: 440px;
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.7), hsla(240 12% 5% / 0.6));
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+.constellation {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* 允许 label hover 时溢出 viewBox 边界, 避免文字被切 */
+  overflow: visible;
+}
+
+.constellation__legend {
+  position: absolute;
+  bottom: var(--space-6);
+  left: var(--space-6);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  background: hsla(240 15% 4% / 0.7);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.constellation__node {
+  cursor: pointer;
+  transition: transform var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.constellation__node:hover { transform: scale(1.1); }
+
+.constellation__node-core {
+  transition: filter var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.constellation__node:hover .constellation__node-core {
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+.constellation__node-label {
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  fill: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wide);
+  text-anchor: middle;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.constellation__node:hover .constellation__node-label { opacity: 1; }
+
+.constellation__line {
+  stroke: hsla(0 0% 100% / 0.1);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  pointer-events: none;
+}
+
+.constellation__line.is-strong {
+  stroke: hsla(160 70% 42% / 0.35);
+  stroke-dasharray: none;
+}
+
+.focus__narrative {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+}
+
+.focus__narrative-title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-tracking-widest);
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 var(--space-3);
+}
+
+.narrative {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.narrative-card {
+  position: relative;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.05);
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.5), hsla(240 12% 5% / 0.4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-out),
+              border-color var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.narrative-card:hover {
+  transform: translate3d(2px, 0, 0);
+  border-color: hsla(160 70% 42% / 0.25);
+}
+
+.narrative-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.narrative-card__num {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--muted-foreground));
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  background: hsla(0 0% 100% / 0.05);
+}
+
+.narrative-card h3 {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-snug);
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.narrative-card p {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--font-size-sm);
+  line-height: var(--font-leading-relaxed);
+  margin: 0;
+}
+
+/* ============================================================
+ * 11. Cadence (large trend) — spacious padding (32px)
+ * ============================================================ */
+
+.cadence__stats {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  font-variant-numeric: tabular-nums;
+  padding-block: var(--space-1);
+}
+
+.cadence__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  line-height: var(--font-leading-tight);
+}
+
+.cadence__stat-label {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--font-tracking-wider);
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.cadence__stat-value {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--font-tracking-snug);
+  color: hsl(var(--foreground));
+}
+
+.cadence__stat-value.is-up   { color: hsl(160 70% 50%); }
+.cadence__stat-value.is-down { color: hsl(0 72% 60%); }
+
+.cadence__chart {
+  height: 360px;
+  padding: var(--space-8);
+  position: relative;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, hsla(240 10% 8% / 0.8), hsla(240 12% 5% / 0.7));
+  border: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+}
+
+.cadence__chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.cadence__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .cadence__chart { height: 260px; padding: var(--space-4); }
+  .cadence__stats { gap: var(--space-3); }
+}
+
+/* ============================================================
+ * 12. Footer
+ * - 上下 py-xl (32px) 给品牌区呼吸
+ * ============================================================ */
+
+.footer {
+  margin-top: var(--space-24);
+  border-top: var(--border-width-thin) solid hsla(0 0% 100% / 0.06);
+  padding-block: var(--space-10);
+}
+
+.footer__inner {
+  width: min(100%, calc(100% - 48px));
+  max-width: var(--rail-max-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--muted-foreground));
+}
+
+.footer__meta {
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  letter-spacing: var(--font-tracking-wide);
+}
+
+.footer__link {
+  font-size: var(--font-size-sm);
+  color: hsl(160 70% 50%);
+  font-weight: var(--font-weight-medium);
+}
+
+.footer__link:hover { color: hsl(160 70% 42%); }
