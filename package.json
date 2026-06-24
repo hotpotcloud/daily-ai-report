@@ -1,0 +1,15 @@
+{
+  "name": "daily-ai-market-briefing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "db:init": "node scripts/init-db.js",
+    "seed": "node scripts/seed-demo.js",
+    "ingest": "node scripts/ingest-digest.js"
+  },
+  "dependencies": {
+  }
+}

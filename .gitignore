@@ -1,0 +1,7 @@
+node_modules/
+data/*.db
+data/inbox/*.json
+!data/inbox/*.example.json
+.env
+.playwright-mcp/
+*.png

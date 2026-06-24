@@ -1,0 +1,180 @@
+/* ============================================================
+ * Auto-generated from tokens/tokens.json — DO NOT EDIT.
+ * 重生成命令：node scripts/build-tokens.js
+ * 生成时间：2026-06-24T06:20:07.016Z
+ * ============================================================ */
+
+:root {
+  --background: 240 12% 5%;  /* 页面底色 (炭黑, 非深蓝) */
+  --foreground: 0 0% 95%;  /* 主文本 (≥15:1 on page) */
+  --card: 240 10% 8%;  /* 卡片底色 */
+  --card-foreground: 0 0% 95%;  /* 卡片文本 */
+  --popover: 240 12% 6%;  /* 弹层底色 */
+  --popover-foreground: 0 0% 95%;
+  --muted: 240 6% 14%;  /* 弱化背景 (hover / track) */
+  --muted-foreground: 240 5% 60%;  /* 弱化文本 (~5.5:1 on page, 不抢主标题) */
+  --primary: 160 70% 42%;  /* 主色 emerald (trust / up / AI, 降饱和护眼) */
+  --primary-foreground: 0 0% 100%;  /* 主色上的文本 */
+  --secondary: 189 80% 50%;  /* 次色 cyan (数字 / signal, 降饱和) */
+  --secondary-foreground: 240 12% 5%;
+  --accent: 262 70% 60%;  /* 强调色 violet (CTA, 降饱和) */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 55%;  /* 警示色 rose (down / 风险, 降饱和) */
+  --destructive-foreground: 0 0% 100%;
+  --success: 160 70% 42%;
+  --warning: 38 80% 56%;  /* 警示 (琥珀金, 仅用于 landing hero pill 区分, dashboard 用 cyan) */
+  --border: 240 6% 18%;
+  --input: 240 6% 18%;
+  --ring: 160 70% 50%;  /* 焦点环 (emerald 提亮) */
+  --color-gray-50: #f5f5f7;  /* 最高对比文本 / 浅底面板 */
+  --color-gray-100: #e5e5ea;  /* 次级文本 */
+  --color-gray-200: #d4d4d8;  /* 辅助文本 */
+  --color-gray-300: #a1a1aa;  /* 禁用 / 占位 */
+  --color-gray-400: #71717a;  /* 弱化文本 (≥4.5:1 on gray-950) */
+  --color-gray-500: #52525b;  /* 分隔线 */
+  --color-gray-600: #3f3f46;  /* 深底边框 */
+  --color-gray-700: #27272a;  /* 深底 hover / track */
+  --color-gray-800: #1f1f24;  /* shell-core 背景 */
+  --color-gray-900: #14141a;  /* 次级背景 */
+  --color-gray-950: #0a0a0f;  /* 页面 bg (炭黑, 非深蓝) */
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #10b981;  /* 主色 emerald (up / AI 主题 / trust) */
+  --color-emerald-500: #059669;
+  --color-emerald-600: #047857;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #06b6d4;  /* 主色 cyan (综合得分 / 焦点 / market 主题) */
+  --color-cyan-500: #0891b2;
+  --color-cyan-600: #0e7490;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #7c3aed;  /* 主色 violet (CTA / primary button) */
+  --color-violet-600: #6d28d9;
+  --color-rose-300: #fca5a5;
+  --color-rose-400: #f87171;
+  --color-rose-500: #ef4444;  /* 主色 rose (down / 偏弱 / 风险) */
+  --color-rose-600: #dc2626;
+  --color-surface-page: #0a0a0f;  /* 页面底色 */
+  --color-surface-page-soft: #14141a;  /* 次级底色 / skip-link */
+  --color-surface-shell: rgba(255, 255, 255, 0.025);
+  --color-surface-shell-hi: rgba(255, 255, 255, 0.045);
+  --color-surface-core: linear-gradient(180deg, rgba(20, 20, 26, 0.92), rgba(10, 10, 15, 0.88));
+  --color-surface-overlay: rgba(10, 10, 15, 0.72);
+  --color-surface-track: rgba(255, 255, 255, 0.04);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-default: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-border-focus: #10b981;
+  --color-text-primary: #f5f5f7;  /* 正文 / 标题 (≥15:1 on page) */
+  --color-text-secondary: #e5e5ea;  /* 次级正文 (≥13:1 on page) */
+  --color-text-muted: #d4d4d8;  /* 辅助文本 (≥9:1 on page) */
+  --color-text-subtle: #a1a1aa;  /* 占位 / 提示 (≥5.5:1 on page) */
+  --color-text-inverse: #0a0a0f;
+  --color-status-up: #10b981;  /* 上涨 / 正向变化 */
+  --color-status-down: #ef4444;  /* 下跌 / 负向变化 */
+  --color-status-warning: #67e8f9;  /* 警示 / 关注 (避免金色, 用亮青) */
+  --color-status-info: #06b6d4;  /* 中性提示 */
+  --color-theme-market: #06b6d4;  /* 市场主题色 */
+  --color-theme-ai: #10b981;  /* AI 主题色 */
+  --color-theme-score: #10b981;  /* 综合得分色 (用主色 emerald 突出) */
+  --font-family-sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;  /* 正文 / UI / 标题 */
+  --font-family-display: 'IBM Plex Sans', 'Noto Sans SC', sans-serif;  /* 大字号 display / kicker (含 smcp/ss01 数字特征) */
+  --font-family-serif: 'IBM Plex Serif', 'Noto Serif SC', 'Songti SC', serif;  /* 编辑级斜体 / 装饰 */
+  --font-family-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;  /* 代码 / ticker 数字 */
+  --font-size-2xs: 0.6875rem;  /* 10-11px, micro labels */
+  --font-size-xs: 0.75rem;  /* 12px, meta */
+  --font-size-sm: 0.875rem;  /* 14px, body small */
+  --font-size-base: 1rem;  /* 16px, body */
+  --font-size-lg: 1.125rem;  /* 18px, subtitle */
+  --font-size-xl: 1.375rem;  /* 22px, section title */
+  --font-size-2xl: 1.75rem;  /* 28px, h2 */
+  --font-size-3xl: 2.25rem;  /* 36px, h1 */
+  --font-size-4xl: 3rem;  /* 48px, display */
+  --font-size-5xl: 3.75rem;  /* 60px, hero display */
+  --font-size-6xl: 5rem;  /* 80px, editorial accent */
+  --font-size-7xl: 7.5rem;  /* 120px, massive display */
+  --font-size-8xl: 10rem;  /* 160px, landing hero */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-leading-tight: 1.05;  /* display / editorial */
+  --font-leading-snug: 1.2;  /* 标题 */
+  --font-leading-normal: 1.5;  /* 正文 */
+  --font-leading-relaxed: 1.75;  /* 长文 / 摘要 */
+  --font-tracking-tight: -0.04em;
+  --font-tracking-snug: -0.02em;
+  --font-tracking-normal: 0;
+  --font-tracking-wide: 0.04em;
+  --font-tracking-wider: 0.12em;
+  --font-tracking-widest: 0.24em;
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+  --space-40: 10rem;
+  --space-48: 12rem;
+  --border-width-hair: 0.5px;  /* 极致细线 */
+  --border-width-thin: 1px;  /* 默认 */
+  --border-width-reg: 1.5px;  /* 强调边框 */
+  --border-width-bold: 2px;  /* 重点描边 */
+  --opacity-0: 0;
+  --opacity-5: 0.05;
+  --opacity-8: 0.08;
+  --opacity-12: 0.12;
+  --opacity-20: 0.2;
+  --opacity-40: 0.4;
+  --opacity-60: 0.6;
+  --opacity-80: 0.8;
+  --opacity-100: 1;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --radius-none: 0;
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1.125rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 2.25rem;
+  --radius-full: 9999px;
+  --shadow-card: 0 30px 80px -20px rgba(0, 0, 0, 0.65), 0 2px 0 rgba(255, 255, 255, 0.02) inset;
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-ring: 0 0 0 3px rgba(16, 185, 129, 0.3);  /* focus ring (emerald) */
+  --shadow-glow: 0 0 24px rgba(16, 185, 129, 0.35);  /* 强调 / 数据更新闪烁 */
+  --shadow-glow-violet: 0 0 40px rgba(124, 58, 237, 0.35);  /* CTA violet 辉光 */
+  --shadow-glow-cyan: 0 0 24px rgba(6, 182, 212, 0.32);  /* 数字青辉光 */
+  --shadow-topbar: 0 18px 50px -10px rgba(0, 0, 0, 0.6);
+  --motion-duration-instant: 120ms;
+  --motion-duration-fast: 260ms;
+  --motion-duration-base: 480ms;
+  --motion-duration-slow: 780ms;
+  --motion-duration-lazy: 1200ms;
+  --motion-easing-out: cubic-bezier(0.32, 0.72, 0, 1);  /* 标准出场 */
+  --motion-easing-spring: cubic-bezier(0.34, 1.4, 0.64, 1);  /* 弹跳出场 */
+  --motion-easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --z-base: 0;
+  --z-raised: 2;
+  --z-sticky: 50;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --layout-max-width: 1400px;
+  --layout-gutter: calc(100% - 1400px);  /* 两侧留白参考 */
+  --layout-gutter-d: calc(100% - 48px);
+  --layout-gutter-m: calc(100% - 24px);
+}
