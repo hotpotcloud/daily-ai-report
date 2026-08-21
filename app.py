@@ -29,23 +29,18 @@ USER_AGENT = "Mozilla/5.0 (compatible; DailyAIBriefing/1.0)"
 RSS_SOURCES = [
     {
         "name": "Google News · AI(中文)",
-        "url": "https://news.google.com/rss/search?q=AI+%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD+%E5%A4%A7%E6%A8%A1%E5%9E%8B&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+        "url": "https://news.google.com/rss/search?q=AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "category": "ai"
     },
     {
         "name": "Google News · 财经(中文)",
-        "url": "https://news.google.com/rss/search?q=%E8%82%A1%E5%B8%82+%E9%87%91%E8%9E%8D+%E5%AE%9D%E9%93%B6%E5%88%B8&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+        "url": "https://news.google.com/rss/search?q=%E8%82%A1%E5%B8%82&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "category": "market"
     },
     {
         "name": "Google News · 半导体(中文)",
-        "url": "https://news.google.com/rss/search?q=%E5%8D%8A%E5%AF%BC%E4%BD%93+%E8%8A%AF%E7%89%87+%E5%9B%BD%E4%BA%A7&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+        "url": "https://news.google.com/rss/search?q=%E5%8D%8A%E5%AF%BC%E4%BD%93&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "category": "market"
-    },
-    {
-        "name": "Google News · 科技(中文)",
-        "url": "https://news.google.com/rss/search?q=%E7%A7%91%E6%8A%80+%E5%88%9B%E4%B8%9A+%E4%BA%92%E8%81%94%E7%BD%91&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
-        "category": "tech"
     }
 ]
 
@@ -110,6 +105,8 @@ def fetch_source(source):
     try:
         xml = fetch_url(source["url"])
         items = parse_rss(xml)
+        if not items:
+            return None  # 抓到了 RSS 但没解析出 item,当失败算
         return [
             {"source": source["name"], "category": source["category"], **it}
             for it in items[:10]
