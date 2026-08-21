@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN" class="dark chat">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta
+      name="description"
+      content="AI 助手 · 基于历史日报回答问题 · Serenity Finance"
+    />
+    <title>AI 助手 · Signal Board</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/shared/tokens.css" />
+    <link rel="stylesheet" href="/shared/base.css" />
+    <link rel="stylesheet" href="/chat.css" />
+  </head>
+
+  <body class="chat-page">
+    <a class="sr-skip" href="#chat-input">跳到输入框</a>
+
+    <!-- 装饰层 -->
+    <div class="bg-stage" aria-hidden="true">
+      <div
+        class="bg-orb bg-orb--emerald"
+        style="top: -16rem; left: -12rem; width: 40rem; height: 40rem"
+      ></div>
+      <div
+        class="bg-orb bg-orb--violet"
+        style="bottom: -14rem; right: -12rem; width: 36rem; height: 36rem"
+      ></div>
+      <div class="bg-grid"></div>
+      <div class="bg-grain"></div>
+    </div>
+
+    <!-- Topbar -->
+    <header class="chat-topbar">
+      <a class="brand" href="/" aria-label="Signal Board 首页">
+        <span class="brand__mark" aria-hidden="true">
+          <span class="brand__mark-core"></span>
+        </span>
+        <span class="brand__text">
+          <span class="brand__title">Serenity</span>
+          <span class="brand__sub">AI · Copilot</span>
+        </span>
+      </a>
+
+      <div class="chat-topbar__meta">
+        <span class="status-pill" id="status-pill" aria-live="polite">
+          <span class="status-pill__dot" aria-hidden="true"></span>
+          <span id="status-text" class="mono">就绪</span>
+        </span>
+        <a class="link-back mono" href="/" aria-label="返回信号面板">← 信号面板</a>
+      </div>
+    </header>
+
+    <main class="chat-main" id="main">
+      <!-- 消息区 -->
+      <div
+        class="chat-stream"
+        id="chat-stream"
+        role="log"
+        aria-live="polite"
+        aria-label="对话历史"
+      >
+        <!-- 欢迎卡 -->
+        <div class="msg msg--welcome" data-role="welcome">
+          <div class="msg__avatar msg__avatar--ai" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M12 2 4 7v10l8 5 8-5V7l-8-5z" />
+              <path d="M12 22V12" />
+              <path d="m4 7 8 5 8-5" />
+            </svg>
+          </div>
+          <div class="msg__bubble">
+            <p class="msg__title">AI 助手已就位</p>
+            <p class="msg__body">
+              我掌握项目最近 5 期的 AI / 金融市场日报上下文。可以问:
+            </p>
+            <ul class="msg__suggest" id="suggest-list">
+              <li><button class="chip" data-q="最近一期 AI 行业几个重点?简洁列 3 条">最近一期 AI 行业几个重点?简洁列 3 条</button></li>
+              <li><button class="chip" data-q="半导体景气最近怎么走?有什么支撑逻辑?">半导体景气最近怎么走?有什么支撑逻辑?</button></li>
+              <li><button class="chip" data-q="市场情绪最近是偏多还是偏空?为什么?">市场情绪最近是偏多还是偏空?为什么?</button></li>
+              <li><button class="chip" data-q="避险需求指标变化趋势,什么时候升的?">避险需求指标变化趋势,什么时候升的?</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 输入区 -->
+      <form class="chat-input" id="chat-form" autocomplete="off">
+        <div class="chat-input__box glass">
+          <textarea
+            id="chat-input"
+            name="message"
+            class="chat-input__field"
+            rows="1"
+            placeholder="问点什么…(Enter 发送,Shift+Enter 换行)"
+            aria-label="问题输入"
+            maxlength="2000"
+          ></textarea>
+          <button
+            type="submit"
+            class="chat-input__send"
+            id="chat-send"
+            aria-label="发送"
+            disabled
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <p class="chat-input__hint mono" id="chat-hint">
+          上下文:最近 5 期日报 · 回答严格基于历史日报内容
+        </p>
+      </form>
+    </main>
+
+    <script src="/chat.js" type="module"></script>
+  </body>
+</html>
