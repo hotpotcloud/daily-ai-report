@@ -4,10 +4,11 @@ import { initDb, getSecret } from "../server/db.js";
 
 initDb();
 
-const apiKey = getSecret("MINIMAX_API_KEY");
+const apiKey =
+  process.env.MINIMAX_API_KEY || getSecret("MINIMAX_API_KEY");
 if (!apiKey) {
   console.error(
-    "[generate-digest] 未在数据库找到 MINIMAX_API_KEY,请先运行 seed-secret.js 注入"
+    "[generate-digest] 未找到 MINIMAX_API_KEY(请设置 env 或运行 seed-secret.js 注入)"
   );
   process.exit(1);
 }

@@ -1,0 +1,117 @@
+name: Daily AI Briefing
+
+on:
+  schedule:
+    # UTC 0:00 = 北京时间 8:00
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '可选:指定 digestDate (YYYY-MM-DD),不填则用今天'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Show environment
+        run: |
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "- Node: $(node -v)" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Actor: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Fetch news
+        run: node scripts/fetch-news.js
+      
+      - name: Generate digest
+        run: node scripts/generate-digest.js
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL || 'https://api.minimaxi.com/v1' }}
+      
+      - name: Show generated digest summary
+        if: always()
+        run: |
+          if [ -f data/inbox/latest-digest.json ]; then
+            echo "### Generated digest" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            node -e "const d=require('./data/inbox/latest-digest.json');console.log(JSON.stringify({digestDate:d.digestDate,marketSentiment:d.marketSentiment,aiSentiment:d.aiSentiment,summary:d.summary,marketCount:d.marketItems.length,aiCount:d.aiItems.length,metrics:d.metrics,detailsCount:d.details.length},null,2))" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ latest-digest.json not generated" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Commit generated JSON
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/inbox/latest-digest.json || true
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+          else
+            DATE=$(date -u +%Y-%m-%d)
+            git commit -m "chore: auto-generated daily digest ${DATE}"
+            git push
+          fi
+      
+      - name: Setup SSH key (strip BOM/CRLF, 参考 milen 部署)
+        if: always() && hashFiles('data/inbox/latest-digest.json') != ''
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key.raw
+          # 剥 BOM/CRLF
+          sed '1s/^\xef\xbb\xbf//' ~/.ssh/deploy_key.raw | tr -d '\r' > ~/.ssh/deploy_key
+          rm ~/.ssh/deploy_key.raw
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -y -f ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 \
+            root@${{ secrets.SERVER_IP }} "echo SSH handshake OK"
+      
+      - name: Push ingest script to server
+        if: always() && hashFiles('data/inbox/latest-digest.json') != ''
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            deploy/ingest_briefing.py \
+            root@${{ secrets.SERVER_IP }}:/opt/milena-backend/ingest_briefing.py
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            root@${{ secrets.SERVER_IP }} \
+            "chmod 755 /opt/milena-backend/ingest_briefing.py && ls -la /opt/milena-backend/ingest_briefing.py"
+      
+      - name: Push digest JSON to server and ingest
+        if: always() && hashFiles('data/inbox/latest-digest.json') != ''
+        run: |
+          cat data/inbox/latest-digest.json | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            root@${{ secrets.SERVER_IP }} \
+            "python3 /opt/milena-backend/ingest_briefing.py"
+      
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Server: ${{ secrets.SERVER_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "- DB path: /opt/milena-backend/data/daily_ai_briefing.db" >> $GITHUB_STEP_SUMMARY
+          echo "- Ingest script: /opt/milena-backend/ingest_briefing.py" >> $GITHUB_STEP_SUMMARY
+          echo "- Job status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
