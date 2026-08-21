@@ -1,23 +1,35 @@
-// feed.html 主逻辑:实时新闻 + AI 对话
-// 所有数据 live fetch,零缓存
+// Signal Board · Live feed 主逻辑
+// - 顶部实时新闻(全宽)
+// - 右下角浮窗 chat(FAB → modal)
 
-const feedList = document.getElementById("feed-list");
+const newsList = document.getElementById("news-grid-list");
 const newsCount = document.getElementById("news-count");
-const refreshBtn = document.getElementById("refresh-btn");
 const fetchPill = document.getElementById("fetch-pill");
 const lastFetch = document.getElementById("last-fetch");
-const chatStream = document.getElementById("chat-stream");
+const refreshBtn = document.getElementById("refresh-btn");
+const newsEmpty = document.getElementById("news-empty");
+
+const fab = document.getElementById("chat-fab");
+const modal = document.getElementById("chat-modal");
+const modalPanel = modal.querySelector(".chat-modal__panel");
+const closeBtn = document.getElementById("chat-close");
+const clearBtn = document.getElementById("chat-clear");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const chatSend = document.getElementById("chat-send");
+const chatStream = document.getElementById("chat-stream");
 const chatModel = document.getElementById("chat-model");
+const suggestList = document.getElementById("suggest-list");
+
 const statusPill = document.getElementById("status-pill");
 const statusText = document.getElementById("status-text");
 
-let conversationHistory = [];
-
 const AI_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>`;
 const USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/></svg>`;
+
+let conversationHistory = [];
+
+// ---------- helpers ----------
 
 function setStatus(state, text) {
   statusPill.classList.remove("is-busy", "is-error");
@@ -30,6 +42,18 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text || "";
   return div.innerHTML;
+}
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Math.max(0, (Date.now() - t) / 1000);
+  if (diff < 60) return "刚刚";
+  if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
+  if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
+  if (diff < 7 * 86400) return Math.floor(diff / 86400) + " 天前";
+  return new Date(iso).toLocaleDateString();
 }
 
 function renderLite(text) {
@@ -48,38 +72,54 @@ function renderLite(text) {
     .join("");
 }
 
-function renderFeedItem(it) {
-  const catClass = it.category === "ai" ? "feed-item__cat--ai" : "feed-item__cat--market";
-  const catLabel = it.category === "ai" ? "AI" : "市场";
-  const source = escapeHtml(it.source || "");
-  const title = escapeHtml(it.title || "");
-  const link = escapeHtml(it.link || "#");
-  return `<a class="feed-item" href="${link}" target="_blank" rel="noopener noreferrer" role="listitem">
-    <div class="feed-item__meta">
-      <span class="${catClass}">${catLabel}</span>
-      <span>·</span>
-      <span>${source}</span>
+// ---------- 新闻 ----------
+
+function renderNewsCard(item) {
+  const cat = item.category === "ai" ? "ai" : "market";
+  const catLabel = cat === "ai" ? "AI" : "市场";
+  const source = escapeHtml(item.source || "");
+  const title = escapeHtml(item.title || "");
+  const link = escapeHtml(item.link || "#");
+  const time = timeAgo(item.publishedAt);
+  return `<a class="news-card" href="${link}" target="_blank" rel="noopener noreferrer" role="listitem">
+    <div class="news-card__meta">
+      <span class="news-card__tag news-card__tag--${cat}">${catLabel}</span>
+      <span class="news-card__sep">·</span>
+      <span class="news-card__source">${source}</span>
     </div>
-    <div class="feed-item__title">${title}</div>
+    <div class="news-card__title">${title}</div>
+    ${time ? `<div class="news-card__time">${time}</div>` : ""}
   </a>`;
 }
 
 async function loadFeed() {
   fetchPill.textContent = "拉取中…";
+  refreshBtn.classList.add("is-loading");
   try {
     const res = await fetch("/api/news", { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     const items = data.items || [];
-    feedList.innerHTML = items.length
-      ? items.map(renderFeedItem).join("")
-      : '<div class="loading-pill">暂无新闻</div>';
-    newsCount.textContent = items.length + " 条 · " + (data.failedSources || []).length + " 源失败";
-    lastFetch.textContent = "更新 " + new Date().toLocaleTimeString();
-    fetchPill.textContent = "实时拉取,无缓存";
+    if (items.length) {
+      newsList.innerHTML = items.map(renderNewsCard).join("");
+      newsEmpty.hidden = true;
+    } else {
+      newsList.innerHTML = "";
+      newsEmpty.hidden = false;
+    }
+    const failedCount = (data.failedSources || []).length;
+    newsCount.textContent = items.length + " 条";
+    if (failedCount) {
+      fetchPill.textContent = "实时拉取 · 零缓存 · " + failedCount + " 源失败";
+    } else {
+      fetchPill.textContent = "实时拉取 · 零缓存";
+    }
+    lastFetch.textContent = "更新 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
   } catch (e) {
     fetchPill.textContent = "❌ " + e.message;
     newsCount.textContent = "0 条";
+  } finally {
+    refreshBtn.classList.remove("is-loading");
   }
 }
 
@@ -99,13 +139,32 @@ async function loadHealth() {
   }
 }
 
+// ---------- Chat modal ----------
+
+function openModal() {
+  modal.hidden = false;
+  // 强制 reflow,让 transition 生效
+  void modal.offsetHeight;
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  fab.setAttribute("aria-expanded", "true");
+  fab.hidden = true;
+  setTimeout(() => chatInput.focus(), 50);
+}
+
+function closeModal() {
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  fab.setAttribute("aria-expanded", "false");
+  fab.hidden = false;
+  setTimeout(() => { modal.hidden = true; }, 220);
+}
+
 function makeMessage(role, content) {
   const div = document.createElement("div");
   div.className = `msg msg--${role}`;
   div.innerHTML = `
-    <div class="msg__avatar msg__avatar--${role}" aria-hidden="true">
-      ${role === "ai" ? AI_SVG : USER_SVG}
-    </div>
+    <div class="msg__avatar msg__avatar--${role}" aria-hidden="true">${role === "ai" ? AI_SVG : USER_SVG}</div>
     <div class="msg__bubble"><div class="msg__body"></div></div>
   `;
   const body = div.querySelector(".msg__body");
@@ -125,6 +184,12 @@ async function sendMessage(text) {
   if (!trimmed) return;
   makeMessage("user", trimmed);
   conversationHistory.push({ role: "user", content: trimmed });
+
+  // 隐藏建议
+  if (suggestList) {
+    const welcome = suggestList.closest(".msg--welcome");
+    if (welcome) welcome.style.display = "none";
+  }
 
   const ai = makeMessage("ai", "");
   setBubbleContent(ai.body, "", true);
@@ -187,10 +252,38 @@ async function sendMessage(text) {
   }
 }
 
+function clearChat() {
+  conversationHistory = [];
+  // 保留 welcome message,删其他
+  Array.from(chatStream.querySelectorAll(".msg")).forEach((m) => {
+    if (!m.classList.contains("msg--welcome")) m.remove();
+  });
+  const welcome = chatStream.querySelector(".msg--welcome");
+  if (welcome) welcome.style.display = "";
+}
+
 function autoResize() {
   chatInput.style.height = "auto";
-  chatInput.style.height = Math.min(chatInput.scrollHeight, 8 * 24) + "px";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 7.5 * 16) + "px";
 }
+
+// ---------- events ----------
+
+fab.addEventListener("click", openModal);
+closeBtn.addEventListener("click", closeModal);
+clearBtn.addEventListener("click", clearChat);
+
+// 点 modal 背景关闭
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) closeModal();
+});
+
+// ESC 关闭
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !modal.hidden) closeModal();
+});
+
+refreshBtn.addEventListener("click", () => loadFeed());
 
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -212,10 +305,22 @@ chatInput.addEventListener("keydown", (e) => {
   }
 });
 
-refreshBtn.addEventListener("click", loadFeed);
+if (suggestList) {
+  suggestList.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const q = chip.dataset.q;
+    if (q) {
+      chatInput.value = q;
+      autoResize();
+      chatSend.disabled = false;
+      chatForm.requestSubmit();
+    }
+  });
+}
 
-// 首屏:拉健康 + 新闻;放个欢迎 message
-makeMessage("ai", "**Signal Board 已上线**\n\n左侧是实时新闻(每点 ↻ 刷新重拉,零缓存),右侧可以基于这些新闻问我。\n\n试试:\n- 今天 AI 行业最值得关注的 1 件事?\n- 半导体景气最近怎么样?\n- 总结一下今天的市场情绪");
+// 启动
 loadHealth();
 loadFeed();
-chatInput.focus();
+// 每 5 分钟自动拉一次
+setInterval(loadFeed, 5 * 60 * 1000);

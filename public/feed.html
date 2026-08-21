@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" class="dark feed">
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,139 +8,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/chat.css" />
-    <style>
-      .feed-page { display: flex; flex-direction: column; min-height: 100dvh; }
-      .feed-main {
-        flex: 1;
-        max-width: 64rem;
-        width: 100%;
-        margin: 0 auto;
-        padding: 1.5rem;
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-      }
-      @media (min-width: 980px) {
-        .feed-main { grid-template-columns: 1fr 1fr; }
-      }
-      .panel {
-        background: hsl(var(--card) / 0.6);
-        border: 1px solid hsl(var(--border) / 0.5);
-        border-radius: 1rem;
-        padding: 1.25rem;
-        backdrop-filter: blur(8px);
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-      }
-      .panel__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.9rem;
-        padding-bottom: 0.6rem;
-        border-bottom: 1px solid hsl(var(--border) / 0.4);
-      }
-      .panel__title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        color: hsl(var(--primary));
-        font-family: "JetBrains Mono", monospace;
-        text-transform: uppercase;
-      }
-      .panel__count {
-        font-size: 0.7rem;
-        color: hsl(var(--muted-foreground));
-        font-family: "JetBrains Mono", monospace;
-      }
-      .feed-list {
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        max-height: 50vh;
-      }
-      .feed-item {
-        padding: 0.7rem 0.8rem;
-        border-radius: 0.6rem;
-        background: hsl(var(--muted) / 0.4);
-        border: 1px solid hsl(var(--border) / 0.4);
-        text-decoration: none;
-        color: inherit;
-        display: block;
-        transition: background 0.15s, transform 0.1s, border-color 0.15s;
-      }
-      .feed-item:hover {
-        background: hsl(var(--primary) / 0.12);
-        border-color: hsl(var(--primary) / 0.5);
-        transform: translateX(2px);
-      }
-      .feed-item__meta {
-        display: flex;
-        gap: 0.5rem;
-        font-size: 0.65rem;
-        color: hsl(var(--muted-foreground));
-        font-family: "JetBrains Mono", monospace;
-        margin-bottom: 0.3rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .feed-item__cat--ai { color: hsl(var(--primary)); }
-      .feed-item__cat--market { color: hsl(var(--secondary)); }
-      .feed-item__title {
-        font-size: 0.85rem;
-        line-height: 1.4;
-        color: hsl(var(--foreground));
-      }
-      .chat-panel {
-        display: flex;
-        flex-direction: column;
-        min-height: 60vh;
-      }
-      .chat-stream {
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-      .refresh-row {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 0.8rem;
-      }
-      .refresh-btn {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.7rem;
-        border-radius: 0.5rem;
-        background: hsl(var(--muted) / 0.5);
-        border: 1px solid hsl(var(--border) / 0.6);
-        color: hsl(var(--foreground) / 0.85);
-        cursor: pointer;
-        font-family: inherit;
-      }
-      .refresh-btn:hover {
-        background: hsl(var(--primary) / 0.15);
-        border-color: hsl(var(--primary) / 0.5);
-      }
-      .loading-pill {
-        display: inline-block;
-        font-size: 0.75rem;
-        color: hsl(var(--muted-foreground));
-        font-family: "JetBrains Mono", monospace;
-      }
-    </style>
+    <link rel="stylesheet" href="/feed.css" />
   </head>
-  <body class="chat-page feed-page">
-    <a class="sr-skip" href="#chat-input">跳到输入框</a>
+  <body>
+    <a class="sr-skip" href="#news-grid">跳到新闻</a>
 
+    <!-- 装饰背景 -->
     <div class="bg-stage" aria-hidden="true">
       <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:42rem;height:42rem"></div>
       <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
@@ -149,58 +25,120 @@
       <div class="bg-grain"></div>
     </div>
 
-    <header class="chat-topbar">
+    <!-- 顶部 header -->
+    <header class="topbar">
       <a class="brand" href="/" aria-label="Signal Board 首页">
         <span class="brand__mark" aria-hidden="true"><span class="brand__mark-core"></span></span>
         <span class="brand__text">
           <span class="brand__title">Serenity</span>
-          <span class="brand__sub">Signal · Live</span>
+          <span class="brand__sub">Signal · Board</span>
         </span>
       </a>
-      <div class="chat-topbar__meta">
+      <div class="topbar__meta">
         <span class="status-pill" id="status-pill"><span class="status-pill__dot"></span><span id="status-text" class="mono">就绪</span></span>
-        <span class="link-back mono" id="last-fetch">—</span>
+        <span class="date-pill mono" id="last-fetch">—</span>
+        <button class="refresh-btn" id="refresh-btn" aria-label="刷新新闻">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-3.13-6.83"/><path d="M21 4v5h-5"/></svg>
+          <span>刷新</span>
+        </button>
       </div>
     </header>
 
-    <main class="feed-main">
-      <!-- 左:实时新闻 -->
-      <section class="panel">
-        <div class="panel__head">
-          <span class="panel__title">实时新闻</span>
-          <span class="panel__count" id="news-count">—</span>
-        </div>
-        <div class="refresh-row">
-          <button class="refresh-btn" id="refresh-btn">↻ 刷新</button>
-          <span class="loading-pill" id="fetch-pill">实时拉取,无缓存</span>
-        </div>
-        <div class="feed-list" id="feed-list" role="list" aria-label="新闻列表"></div>
-      </section>
-
-      <!-- 右:AI 对话 -->
-      <section class="panel chat-panel">
-        <div class="panel__head">
-          <span class="panel__title">AI 对话</span>
-          <span class="panel__count" id="chat-model">—</span>
-        </div>
-        <div class="chat-stream" id="chat-stream" role="log" aria-live="polite"></div>
-        <form class="chat-input" id="chat-form" autocomplete="off">
-          <div class="chat-input__box glass">
-            <textarea
-              id="chat-input"
-              class="chat-input__field"
-              rows="1"
-              placeholder="问点什么…(Enter 发送,Shift+Enter 换行)"
-              aria-label="问题输入"
-              maxlength="2000"
-            ></textarea>
-            <button type="submit" class="chat-input__send" id="chat-send" aria-label="发送" disabled>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </button>
+    <main id="main" class="page">
+      <!-- 实时新闻区(全宽) -->
+      <section class="news" id="news-grid" aria-labelledby="news-title">
+        <div class="news__head">
+          <div>
+            <h1 class="news__title" id="news-title">实时新闻</h1>
+            <p class="news__sub">
+              <span class="news__count" id="news-count">— 条</span>
+              <span class="news__sep">·</span>
+              <span class="news__cache" id="fetch-pill">实时拉取 · 零缓存</span>
+            </p>
           </div>
-        </form>
+        </div>
+        <div class="news__grid" id="news-grid-list" role="list" aria-label="新闻卡片"></div>
+        <div class="news__empty" id="news-empty" hidden>
+          <p>暂无新闻</p>
+          <p class="news__empty-sub">刷新试试,或检查数据源</p>
+        </div>
       </section>
     </main>
+
+    <!-- Chat 浮窗按钮(右下) -->
+    <button
+      class="fab"
+      id="chat-fab"
+      type="button"
+      aria-label="打开 AI 助手"
+      aria-expanded="false"
+      aria-controls="chat-modal"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      </svg>
+      <span class="fab__label">AI 助手</span>
+    </button>
+
+    <!-- Chat 弹窗(默认隐藏) -->
+    <div
+      class="chat-modal"
+      id="chat-modal"
+      role="dialog"
+      aria-labelledby="chat-modal-title"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="chat-modal__panel" role="document">
+        <header class="chat-modal__head">
+          <div class="chat-modal__title">
+            <span class="chat-modal__dot" aria-hidden="true"></span>
+            <span id="chat-modal-title">AI 助手</span>
+            <span class="chat-modal__model mono" id="chat-model">—</span>
+          </div>
+          <div class="chat-modal__actions">
+            <button class="icon-btn" id="chat-clear" type="button" aria-label="清空对话" title="清空">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+            <button class="icon-btn" id="chat-close" type="button" aria-label="关闭" title="关闭">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="chat-modal__body">
+          <div class="chat-stream" id="chat-stream" role="log" aria-live="polite" aria-label="对话历史">
+            <div class="msg msg--ai msg--welcome">
+              <div class="msg__avatar msg__avatar--ai" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>
+              </div>
+              <div class="msg__bubble">
+                <p class="msg__title">AI 助手已就位</p>
+                <p class="msg__body">我看到页面上的实时新闻,可以基于这些内容问问题。试试:</p>
+                <ul class="msg__suggest" id="suggest-list">
+                  <li><button class="chip" data-q="今天 AI 行业最值得关注的 1 件事?">今天 AI 行业最值得关注的 1 件事?</button></li>
+                  <li><button class="chip" data-q="半导体景气最近怎么走?">半导体景气最近怎么走?</button></li>
+                  <li><button class="chip" data-q="市场情绪最近是偏多还是偏空?为什么?">市场情绪最近是偏多还是偏空?为什么?</button></li>
+                  <li><button class="chip" data-q="避险需求指标变化趋势?">避险需求指标变化趋势?</button></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <form class="chat-modal__input" id="chat-form" autocomplete="off">
+          <textarea
+            id="chat-input"
+            class="chat-input__field"
+            rows="1"
+            placeholder="问点什么…(Enter 发送,Shift+Enter 换行)"
+            aria-label="问题输入"
+            maxlength="2000"
+          ></textarea>
+          <button type="submit" class="chat-send" id="chat-send" aria-label="发送" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
 
     <script src="/feed.js"></script>
   </body>
