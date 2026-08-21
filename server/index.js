@@ -3,6 +3,7 @@ import path from "node:path";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { getLatestDigest, initDb, listDigests, upsertDigest } from "./db.js";
+import { callChat, streamChat } from "./chat.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,67 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === "/api/chat" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      let chatMessages = [];
+
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        chatMessages = body.messages;
+      } else if (typeof body.message === "string" && body.message.trim()) {
+        chatMessages = [{ role: "user", content: body.message.trim() }];
+      } else {
+        sendJson(res, 400, {
+          message: "需要 message 字符串 或 messages 数组"
+        });
+        return;
+      }
+
+      const wantStream =
+        searchParams.get("stream") === "true" ||
+        (req.headers.accept || "").includes("text/event-stream");
+
+      if (wantStream) {
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+          "X-Accel-Buffering": "no"
+        });
+        try {
+          for await (const delta of streamChat(chatMessages)) {
+            res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+          }
+          res.write(`data: [DONE]\n\n`);
+        } catch (streamErr) {
+          res.write(
+            `data: ${JSON.stringify({
+              error: streamErr instanceof Error ? streamErr.message : "stream error"
+            })}\n\n`
+          );
+        }
+        res.end();
+      } else {
+        const result = await callChat(chatMessages);
+        sendJson(res, 200, result);
+      }
+    } catch (error) {
+      console.error("[chat] error:", error);
+      if (!res.headersSent) {
+        sendJson(res, 500, {
+          message: error instanceof Error ? error.message : "chat 调用失败"
+        });
+      } else {
+        try {
+          res.end();
+        } catch (_) {
+          // ignore
+        }
+      }
+    }
+    return;
+  }
+
   if (req.method === "GET") {
     serveStaticFile(res, pathname);
     return;
@@ -91,7 +153,11 @@ server.listen(port, () => {
 function setCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept"
+  );
+  res.setHeader("Access-Control-Expose-Headers", "Content-Type");
 }
 
 function sendJson(res, statusCode, payload) {

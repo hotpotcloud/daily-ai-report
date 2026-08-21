@@ -26,7 +26,8 @@
 ## 端口
 - 暂未在服务器上跑 Express(server/index.js 仅本地用)
 - 实际"部署"主要是 Python ingest 脚本 + GitHub Actions
-- 如果未来要加 Express,避开 milen 自身 3000 段,用 3535(briefing 谐音)
+- 本地 Express 默认 3000,可以 `PORT=3535 npm run dev` 改端口(避开 milen 3000 段)
+- 如果未来要在远程用 Express,需要走 SSH 隧道 / Cloudflare Tunnel,**不要**在服务器装 Node
 
 ## 密钥管理
 - API key 走 GitHub Secret(`MINIMAX_API_KEY`),**不进任何文件 / commit**
@@ -39,6 +40,7 @@
 - 仅生成 JSON:`node scripts/fetch-news.js && node scripts/generate-digest.js`
 - 写入数据库:`node scripts/ingest-digest.js`
 - 注入本地 key(不进 .env):`echo "$KEY" | node scripts/seed-secret.js MINIMAX_API_KEY`
+- 启动本地 Express:`PORT=3535 npm run dev`,提供 `/api/health` / `/api/digests/*` / `/api/chat`
 
 ## 字段约束(日报 JSON)
 - `digestDate` / `title` / `marketSentiment` / `aiSentiment` / `summary` 必须有

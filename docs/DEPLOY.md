@@ -19,6 +19,10 @@
                           │  /opt/milena-backend/data/  │
                           │   daily_ai_briefing.db      │
                           └─────────────────────────────┘
+
+[ 浏览器/CLI ] → POST /api/chat (server/index.js 本地 Express)
+                          ↓
+                       chat.js → MiniMax-M3 API (带历史日报上下文)
 ```
 
 **关键约束**(来自 milen 项目 CONTEXT.yaml,沿用同一台服务器):
@@ -27,12 +31,17 @@
 - 已有 Python 3.11 + Flask + SQLite + Nginx
 - 共用 milen 的 SSH key(腾讯云轻量,`119.29.189.103`)
 
-**部署策略:GitHub Actions 跑(云端),Python 在服务器端 ingest**
+**部署策略**:
 
-- Actions runner 有 Node 20,跑 `fetch-news` + `generate-digest`
-- 生成 JSON 后通过 SSH 推送到服务器(同一把 milen 用的 key)
-- 服务器端 Python 脚本读 stdin JSON,写本地 SQLite
-- 整个流程不依赖服务器装 Node 或任何新包
+| 组件 | 跑在哪 | 谁触发 |
+| --- | --- | --- |
+| 自动化日报生成 | GitHub Actions(云端 Node 20) | cron 每天 UTC 0:00 / 手动 |
+| 日报入库到服务器 | 服务器 Python 脚本 | SSH 推完直接 stdin 喂入 |
+| Express API(查日报) | **暂未部署到服务器**(只本地用) | — |
+| `/api/chat` 对话 API | **暂未部署到服务器**(只本地用) | — |
+
+> 备注:Express + `/api/chat` 目前**只在本机跑**(`npm run dev`),因为服务器不装 Node。
+> 如果之后要让远程也能用,可以在本地用 SSH 隧道 / ngrok / Cloudflare Tunnel 暴露,或者把 chat 改写成 Python endpoint 加到 milen-backend(需要用户显式同意改 milen 代码)。
 
 ---
 
@@ -160,3 +169,76 @@ sqlite3 /opt/milena-backend/data/daily_ai_briefing.db ".schema digests"
 - ✅ 失败时 GitHub 自动发邮件给 commit 作者
 - ✅ 复用 milen 已有的 SSH 部署模式
 - ✅ 跟 milen 的 CI/CD 风格一致,降低维护成本
+
+---
+
+## 10. Express API + Chat 端点(本机)
+
+本地跑 `npm run dev` 启动 Express(`http://localhost:3000` 或 `PORT=3535 npm run dev` 改端口)。
+
+### 已有 API
+
+| Method | Path | 说明 |
+| --- | --- | --- |
+| GET | `/api/health` | 健康检查 |
+| GET | `/api/digests/latest` | 最新一期日报 |
+| GET | `/api/digests?limit=N` | 最近 N 条日报(默认 30) |
+| POST | `/api/digests` | 新建/覆盖日报(JSON body 完整 schema) |
+| POST | `/api/chat` | **AI 对话**(见下) |
+
+### POST /api/chat(AI 对话)
+
+**两种调用形式**:
+
+1. 单条消息:
+   ```bash
+   curl -X POST http://localhost:3535/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message": "今天 AI 行业几个重点?简洁列 3 条"}'
+   ```
+
+2. 多轮消息:
+   ```bash
+   curl -X POST http://localhost:3535/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"messages": [
+     {"role":"user","content":"今天市场情绪?"},
+     {"role":"assistant","content":"中性偏多"},
+     {"role":"user","content":"为什么?"}
+   ]}'
+   ```
+
+**响应**(非流式):
+```json
+{
+  "content": "...",
+  "model": "MiniMax-M3",
+  "contextDigestsUsed": 4,
+  "usage": { "total_tokens": 1234, "prompt_tokens": 800, "completion_tokens": 434 }
+}
+```
+
+**流式**(SSE) — `?stream=true` 或 `Accept: text/event-stream`:
+```
+data: {"delta": "根据"}
+
+data: {"delta": "最近"}
+
+data: {"delta": "一期"}
+
+...
+
+data: [DONE]
+```
+
+**关键行为**:
+
+- 系统 prompt 注入**最近 5 条日报**(从 SQLite 读),M3 严格基于历史日报回答
+- 多轮消息保留最近 20 条(避免 prompt 过长)
+- 如果 M3 key 没配,返回 500 提示
+- API key 读取顺序: `process.env.MINIMAX_API_KEY` → SQLite `secrets` 表 → 报错
+
+**前端集成建议**(用户自行决定,本仓库**不**内置 chat UI):
+- 简单 HTML + JS `fetch` 即可
+- 流式模式用 `fetch().body.getReader()` + `TextDecoder` 解析 `data: {...}\n\n` 即可
+- 避免在前端暴露 key,所有 `/api/chat` 调用走后端
