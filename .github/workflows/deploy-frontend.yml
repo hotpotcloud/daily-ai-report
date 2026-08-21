@@ -5,11 +5,10 @@ on:
   push:
     branches: [master]
     paths:
-      - "server/**"
+      - "app.py"
       - "public/**"
       - "deploy/install-server.sh"
       - ".github/workflows/deploy-frontend.yml"
-      - "package.json"
 
 permissions:
   contents: read
