@@ -42,10 +42,10 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
             "mkdir -p /opt/daily-ai-briefing/data /opt/daily-ai-briefing/public /opt/daily-ai-briefing/server /tmp/daily-ai-briefing-deploy"
 
-      - name: Push server code
+      - name: Push backend (app.py)
         run: |
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
-            server/* root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/server/
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            app.py root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/app.py
 
       - name: Push frontend code
         run: |

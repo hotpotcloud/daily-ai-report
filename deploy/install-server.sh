@@ -1,89 +1,64 @@
 #!/bin/bash
 # daily-ai-briefing 服务器端安装脚本
-# 由 GitHub Actions 推过来后 SSH 跑,幂等。
-# 用法: bash /tmp/daily-ai-briefing-install.sh
+# 用 Python Flask(不装 Node),零缓存、零 SQLite。
+# 用法: MINIMAX_API_KEY=... bash /tmp/daily-ai-briefing-install.sh
 
 set -euo pipefail
 
 APP_DIR="/opt/daily-ai-briefing"
 APP_PORT="${APP_PORT:-3535}"
 LOG_FILE="/var/log/daily-ai-briefing.log"
-NODE_VERSION_MIN=22
 
 log() { echo "[install] $*"; }
 fail() { echo "[install] ❌ $*" >&2; exit 1; }
 
-log "=== 1. 检查 Node.js ==="
-need_install=0
-if ! command -v node >/dev/null 2>&1; then
-  log "node 不存在,需要装"
-  need_install=1
-else
-  current_major="$(node -v | sed -E 's/^v([0-9]+).*/\1/')"
-  if [ "$current_major" -lt "$NODE_VERSION_MIN" ]; then
-    log "node $(node -v) 太旧,需要装 v${NODE_VERSION_MIN}+"
-    need_install=1
-  else
-    log "node $(node -v) 已装,跳过"
-  fi
+log "=== 1. 检查 Python 3 ==="
+if ! command -v python3 >/dev/null 2>&1; then
+  fail "python3 不存在,服务器需要有 Python 3.8+"
+fi
+PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+log "Python ${PY_VERSION} 已装"
+PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
+PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
+if [ "$PY_MAJOR" -lt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 8 ]; }; then
+  fail "Python 3.8+ 必需,当前 $PY_VERSION"
 fi
 
-if [ "$need_install" = "1" ]; then
-  log "尝试 dnf 装 nodejs..."
-  if ! dnf install -y nodejs 2>/tmp/dnf-nodejs.err; then
-    log "dnf 仓库没找到 nodejs,改用 NodeSource 官方源"
-    log "(node:sqlite 需要 Node 22+,dqn 安装如果版本太老就会触发这一步)"
-    dnf module reset -y nodejs 2>/dev/null || true
-    curl -fsSL https://rpm.nodesource.com/setup_22.x -o /tmp/ns-setup.sh \
-      || fail "下载 NodeSource setup 失败(检查出网)"
-    bash /tmp/ns-setup.sh
-    dnf install -y nodejs
-  fi
-  node -v
-  npm -v
+log "=== 2. 检查 Flask ==="
+if ! python3 -c "import flask" 2>/dev/null; then
+  log "Flask 没装,从 dnf 装"
+  dnf install -y python3-flask || fail "Flask 装失败"
 fi
+FLASK_VER=$(python3 -c "import flask; print(flask.__version__)")
+log "Flask ${FLASK_VER} 已就绪"
 
-log "=== 2. 创建 app 目录 ==="
-mkdir -p "$APP_DIR/data"
+log "=== 3. 创建 app 目录 ==="
 mkdir -p "$APP_DIR/public"
 mkdir -p "$(dirname "$LOG_FILE")"
 
-log "=== 3. 检查代码(由 workflow 提前 scp) ==="
-if [ ! -f "$APP_DIR/server/index.js" ]; then
-  fail "$APP_DIR/server/index.js 不存在,workflow 应该 scp 了"
+log "=== 4. 检查代码(由 workflow 提前 scp) ==="
+if [ ! -f "$APP_DIR/app.py" ]; then
+  fail "$APP_DIR/app.py 不存在,workflow 应该 scp 了"
 fi
 ls -la "$APP_DIR"
 
-log "=== 4. 写 .env(chmod 600,含 MINIMAX_API_KEY 等)==="
+log "=== 5. 写 .env(只放非敏感默认 + 接收外部 key)==="
 ENV_FILE="$APP_DIR/.env"
-if [ ! -f "$ENV_FILE" ] || [ ! -s "$ENV_FILE" ]; then
-  if [ -n "${MINIMAX_API_KEY:-}" ]; then
-    {
-      echo "PORT=$APP_PORT"
-      echo "NODE_ENV=production"
-      echo "MINIMAX_API_KEY=$MINIMAX_API_KEY"
-      echo "MINIMAX_BASE_URL=${MINIMAX_BASE_URL:-https://api.minimaxi.com/v1}"
-    } > "$ENV_FILE"
-    chmod 600 "$ENV_FILE"
-    log "写入 .env (chmod 600)"
-  else
-    log "⚠️ MINIMAX_API_KEY 未注入,只写端口和 base url"
-    {
-      echo "PORT=$APP_PORT"
-      echo "NODE_ENV=production"
-      echo "MINIMAX_BASE_URL=https://api.minimaxi.com/v1"
-    } > "$ENV_FILE"
-    chmod 600 "$ENV_FILE"
-  fi
-else
-  log ".env 已存在,跳过(避免覆盖)"
-fi
+cat > "$ENV_FILE" <<EOF
+PORT=$APP_PORT
+HOST=0.0.0.0
+MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+MINIMAX_BASE_URL=${MINIMAX_BASE_URL:-https://api.minimaxi.com/v1}
+MINIMAX_MODEL=${MINIMAX_MODEL:-MiniMax-M3}
+EOF
+chmod 600 "$ENV_FILE"
+log "写入 .env (chmod 600)"
 
-log "=== 5. 写 systemd service ==="
+log "=== 6. 写 systemd service ==="
 SERVICE_FILE="/etc/systemd/system/daily-ai-briefing.service"
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=Daily AI Briefing (Express)
+Description=Daily AI Briefing (Python Flask)
 After=network.target
 
 [Service]
@@ -91,7 +66,7 @@ Type=simple
 User=root
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$ENV_FILE
-ExecStart=/usr/bin/node server/index.js
+ExecStart=/usr/bin/python3 $APP_DIR/app.py
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:$LOG_FILE
@@ -101,12 +76,12 @@ StandardError=append:$LOG_FILE
 WantedBy=multi-user.target
 EOF
 
-log "=== 6. 重载 systemd + 启动 ==="
+log "=== 7. 重载 systemd + 启动 ==="
 systemctl daemon-reload
 systemctl enable daily-ai-briefing
 systemctl restart daily-ai-briefing
 
-log "=== 7. 健康检查 ==="
+log "=== 8. 健康检查 ==="
 sleep 3
 if curl -sf "http://127.0.0.1:$APP_PORT/api/health" >/tmp/health.json; then
   log "✅ /api/health 200 OK"
@@ -119,7 +94,7 @@ else
   fail "服务未起来,看上面日志"
 fi
 
-log "=== 8. 监听端口 ==="
+log "=== 9. 监听端口 ==="
 (ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null) | grep -E ":$APP_PORT\b" || log "⚠️ 端口 $APP_PORT 未在监听"
 
 log ""

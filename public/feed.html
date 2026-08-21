@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN" class="dark feed">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <title>Signal Board · Live · daily-ai-briefing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/chat.css" />
+    <style>
+      .feed-page { display: flex; flex-direction: column; min-height: 100dvh; }
+      .feed-main {
+        flex: 1;
+        max-width: 64rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      @media (min-width: 980px) {
+        .feed-main { grid-template-columns: 1fr 1fr; }
+      }
+      .panel {
+        background: hsl(var(--card) / 0.6);
+        border: 1px solid hsl(var(--border) / 0.5);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        backdrop-filter: blur(8px);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .panel__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.9rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid hsl(var(--border) / 0.4);
+      }
+      .panel__title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: hsl(var(--primary));
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+      }
+      .panel__count {
+        font-size: 0.7rem;
+        color: hsl(var(--muted-foreground));
+        font-family: "JetBrains Mono", monospace;
+      }
+      .feed-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-height: 50vh;
+      }
+      .feed-item {
+        padding: 0.7rem 0.8rem;
+        border-radius: 0.6rem;
+        background: hsl(var(--muted) / 0.4);
+        border: 1px solid hsl(var(--border) / 0.4);
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: background 0.15s, transform 0.1s, border-color 0.15s;
+      }
+      .feed-item:hover {
+        background: hsl(var(--primary) / 0.12);
+        border-color: hsl(var(--primary) / 0.5);
+        transform: translateX(2px);
+      }
+      .feed-item__meta {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.65rem;
+        color: hsl(var(--muted-foreground));
+        font-family: "JetBrains Mono", monospace;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .feed-item__cat--ai { color: hsl(var(--primary)); }
+      .feed-item__cat--market { color: hsl(var(--secondary)); }
+      .feed-item__title {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        color: hsl(var(--foreground));
+      }
+      .chat-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 60vh;
+      }
+      .chat-stream {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .refresh-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.8rem;
+      }
+      .refresh-btn {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 0.5rem;
+        background: hsl(var(--muted) / 0.5);
+        border: 1px solid hsl(var(--border) / 0.6);
+        color: hsl(var(--foreground) / 0.85);
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .refresh-btn:hover {
+        background: hsl(var(--primary) / 0.15);
+        border-color: hsl(var(--primary) / 0.5);
+      }
+      .loading-pill {
+        display: inline-block;
+        font-size: 0.75rem;
+        color: hsl(var(--muted-foreground));
+        font-family: "JetBrains Mono", monospace;
+      }
+    </style>
+  </head>
+  <body class="chat-page feed-page">
+    <a class="sr-skip" href="#chat-input">跳到输入框</a>
+
+    <div class="bg-stage" aria-hidden="true">
+      <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:42rem;height:42rem"></div>
+      <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
+      <div class="bg-orb bg-orb--violet" style="bottom:-14rem;left:30vw;width:34rem;height:34rem"></div>
+      <div class="bg-grid"></div>
+      <div class="bg-grain"></div>
+    </div>
+
+    <header class="chat-topbar">
+      <a class="brand" href="/" aria-label="Signal Board 首页">
+        <span class="brand__mark" aria-hidden="true"><span class="brand__mark-core"></span></span>
+        <span class="brand__text">
+          <span class="brand__title">Serenity</span>
+          <span class="brand__sub">Signal · Live</span>
+        </span>
+      </a>
+      <div class="chat-topbar__meta">
+        <span class="status-pill" id="status-pill"><span class="status-pill__dot"></span><span id="status-text" class="mono">就绪</span></span>
+        <span class="link-back mono" id="last-fetch">—</span>
+      </div>
+    </header>
+
+    <main class="feed-main">
+      <!-- 左:实时新闻 -->
+      <section class="panel">
+        <div class="panel__head">
+          <span class="panel__title">实时新闻</span>
+          <span class="panel__count" id="news-count">—</span>
+        </div>
+        <div class="refresh-row">
+          <button class="refresh-btn" id="refresh-btn">↻ 刷新</button>
+          <span class="loading-pill" id="fetch-pill">实时拉取,无缓存</span>
+        </div>
+        <div class="feed-list" id="feed-list" role="list" aria-label="新闻列表"></div>
+      </section>
+
+      <!-- 右:AI 对话 -->
+      <section class="panel chat-panel">
+        <div class="panel__head">
+          <span class="panel__title">AI 对话</span>
+          <span class="panel__count" id="chat-model">—</span>
+        </div>
+        <div class="chat-stream" id="chat-stream" role="log" aria-live="polite"></div>
+        <form class="chat-input" id="chat-form" autocomplete="off">
+          <div class="chat-input__box glass">
+            <textarea
+              id="chat-input"
+              class="chat-input__field"
+              rows="1"
+              placeholder="问点什么…(Enter 发送,Shift+Enter 换行)"
+              aria-label="问题输入"
+              maxlength="2000"
+            ></textarea>
+            <button type="submit" class="chat-input__send" id="chat-send" aria-label="发送" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/feed.js"></script>
+  </body>
+</html>
