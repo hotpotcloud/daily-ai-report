@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN" class="dark editorial">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="theme-color" content="#fafaf7" />
     <title>Signal Board · daily-ai-briefing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -87,52 +87,53 @@
         <div class="ticker-bar__grid" id="ticker-bar-grid"></div>
       </section>
 
-      <!-- =============== 重点区 · AI / 市场 双列 =============== -->
-      <section class="briefs" id="briefs" aria-label="今日重点">
-        <div class="briefs__col">
-          <header class="briefs__head">
-            <span class="briefs__num mono">A</span>
-            <h2 class="briefs__title">AI 重点</h2>
-            <span class="briefs__line" aria-hidden="true"></span>
+      <!-- =============== 主区 · 实时新闻(左 1.7fr) + 今日重点(右 1fr)=============== -->
+      <div class="main">
+        <section class="news" id="news" aria-labelledby="news-title">
+          <header class="news__head">
+            <div class="news__head-left">
+              <h2 class="news__title" id="news-title">实时新闻流</h2>
+              <p class="news__sub mono">
+                <span id="news-count">— 条</span>
+                <span class="news__sep">·</span>
+                <span id="fetch-pill">实时拉取 · 零缓存</span>
+                <span class="news__sep">·</span>
+                <span id="last-fetch">—</span>
+              </p>
+            </div>
+            <div class="news__filters" id="news-filters" role="tablist">
+              <button class="filter is-active" data-cat="all" type="button">全部</button>
+              <button class="filter" data-cat="ai" type="button">AI</button>
+              <button class="filter" data-cat="tech" type="button">科技</button>
+              <button class="filter" data-cat="market" type="button">市场</button>
+            </div>
           </header>
-          <ol class="briefs__list" id="briefs-ai-list"></ol>
-        </div>
-        <div class="briefs__col">
-          <header class="briefs__head">
-            <span class="briefs__num mono">M</span>
-            <h2 class="briefs__title">市场重点</h2>
-            <span class="briefs__line" aria-hidden="true"></span>
-          </header>
-          <ol class="briefs__list" id="briefs-market-list"></ol>
-        </div>
-      </section>
+          <div class="news__river" id="news-river" role="list" aria-label="新闻流"></div>
+          <div class="news__empty" id="news-empty" hidden>
+            <p>暂无新闻</p>
+            <p class="news__empty-sub">刷新试试,或检查数据源</p>
+          </div>
+        </section>
 
-      <!-- =============== 实时新闻瀑布流 =============== -->
-      <section class="news" id="news" aria-labelledby="news-title">
-        <header class="news__head">
-          <div class="news__head-left">
-            <h2 class="news__title" id="news-title">实时新闻流</h2>
-            <p class="news__sub mono">
-              <span id="news-count">— 条</span>
-              <span class="news__sep">·</span>
-              <span id="fetch-pill">实时拉取 · 零缓存</span>
-              <span class="news__sep">·</span>
-              <span id="last-fetch">—</span>
-            </p>
+        <section class="briefs" id="briefs" aria-label="今日重点">
+          <div class="briefs__col">
+            <header class="briefs__head">
+              <span class="briefs__num mono">A</span>
+              <h2 class="briefs__title">AI 重点</h2>
+              <span class="briefs__line" aria-hidden="true"></span>
+            </header>
+            <ol class="briefs__list" id="briefs-ai-list"></ol>
           </div>
-          <div class="news__filters" id="news-filters" role="tablist">
-            <button class="filter is-active" data-cat="all" type="button">全部</button>
-            <button class="filter" data-cat="ai" type="button">AI</button>
-            <button class="filter" data-cat="tech" type="button">科技</button>
-            <button class="filter" data-cat="market" type="button">市场</button>
+          <div class="briefs__col briefs__col--market">
+            <header class="briefs__head">
+              <span class="briefs__num mono">M</span>
+              <h2 class="briefs__title">市场重点</h2>
+              <span class="briefs__line" aria-hidden="true"></span>
+            </header>
+            <ol class="briefs__list" id="briefs-market-list"></ol>
           </div>
-        </header>
-        <div class="news__river" id="news-river" role="list" aria-label="新闻流"></div>
-        <div class="news__empty" id="news-empty" hidden>
-          <p>暂无新闻</p>
-          <p class="news__empty-sub">刷新试试,或检查数据源</p>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <!-- =============== Footer · 极简一行 =============== -->
