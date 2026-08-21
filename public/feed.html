@@ -45,6 +45,36 @@
     </header>
 
     <main id="main" class="page">
+      <!-- 今日 AI 整理日报(由 daily-briefing 定时任务每天聚合推送) -->
+      <section class="digest" id="digest" aria-labelledby="digest-title" hidden>
+        <div class="digest__accent" aria-hidden="true"></div>
+        <header class="digest__head">
+          <div class="digest__title-row">
+            <span class="digest__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/>
+                <path d="M12 22V12"/><path d="m4 7 8 5 8-5"/>
+              </svg>
+            </span>
+            <h2 class="digest__title" id="digest-title">今日 AI 整理日报</h2>
+            <span class="digest__date mono" id="digest-date">—</span>
+          </div>
+          <p class="digest__meta mono" id="digest-meta">由 M3 聚合实时新闻</p>
+        </header>
+        <p class="digest__summary" id="digest-summary">—</p>
+        <div class="digest__metrics" id="digest-metrics" role="list" aria-label="今日指标"></div>
+        <div class="digest__items" id="digest-items">
+          <div class="digest__col">
+            <h3 class="digest__col-title digest__col-title--ai">AI 重点</h3>
+            <ul class="digest__list" id="digest-ai-list"></ul>
+          </div>
+          <div class="digest__col">
+            <h3 class="digest__col-title digest__col-title--market">市场重点</h3>
+            <ul class="digest__list" id="digest-market-list"></ul>
+          </div>
+        </div>
+      </section>
+
       <!-- 实时新闻区(全宽) -->
       <section class="news" id="news-grid" aria-labelledby="news-title">
         <div class="news__head">

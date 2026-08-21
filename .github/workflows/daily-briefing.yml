@@ -89,28 +89,25 @@ jobs:
             -o ConnectTimeout=10 \
             root@${{ secrets.SERVER_IP }} "echo SSH handshake OK"
       
-      - name: Push ingest script to server
+      - name: Push digest JSON to server
         if: always() && hashFiles('data/inbox/latest-digest.json') != ''
         run: |
+          # 确保目标目录存在
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "mkdir -p /opt/daily-ai-briefing/data"
+          # scp JSON 到服务器
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            deploy/ingest_briefing.py \
-            root@${{ secrets.SERVER_IP }}:/opt/milena-backend/ingest_briefing.py
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            root@${{ secrets.SERVER_IP }} \
-            "chmod 755 /opt/milena-backend/ingest_briefing.py && ls -la /opt/milena-backend/ingest_briefing.py"
-      
-      - name: Push digest JSON to server and ingest
-        if: always() && hashFiles('data/inbox/latest-digest.json') != ''
-        run: |
-          cat data/inbox/latest-digest.json | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            root@${{ secrets.SERVER_IP }} \
-            "python3 /opt/milena-backend/ingest_briefing.py"
+            data/inbox/latest-digest.json \
+            root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/data/digest.json
+          # 验证
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "ls -la /opt/daily-ai-briefing/data/digest.json && head -c 200 /opt/daily-ai-briefing/data/digest.json"
       
       - name: Deployment summary
         if: always()
         run: |
           echo "### Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- Server: ${{ secrets.SERVER_IP }}" >> $GITHUB_STEP_SUMMARY
-          echo "- DB path: /opt/milena-backend/data/daily_ai_briefing.db" >> $GITHUB_STEP_SUMMARY
-          echo "- Ingest script: /opt/milena-backend/ingest_briefing.py" >> $GITHUB_STEP_SUMMARY
+          echo "- Server: ${{ secrets.SERVER_IP }}:3535" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest file: /opt/daily-ai-briefing/data/digest.json" >> $GITHUB_STEP_SUMMARY
+          echo "- API endpoint: http://${{ secrets.SERVER_IP }}:3535/api/digest/latest" >> $GITHUB_STEP_SUMMARY
           echo "- Job status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

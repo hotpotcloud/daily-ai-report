@@ -239,6 +239,26 @@ def health():
         "cache": False
     })
 
+DIGEST_PATH = os.path.join(APP_DIR, "data", "digest.json")
+
+@app.route("/api/digest/latest")
+def digest_latest():
+    """读最近一次 M3 聚合的日报(由 daily-briefing workflow 每天 8 点推过来)。"""
+    if not os.path.exists(DIGEST_PATH):
+        return jsonify({
+            "ok": False,
+            "message": "今日 AI 整理日报还没生成,等每天 8:00 的定时任务跑"
+        }), 404
+    try:
+        with open(DIGEST_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        # 加上 mtime 方便前端显示
+        mtime = os.path.getmtime(DIGEST_PATH)
+        data["_generatedAt"] = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/news")
 def news():
     try:

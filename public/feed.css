@@ -192,6 +192,187 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   max-width: 80rem;
   margin: 0 auto;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ---------- 今日 AI 整理日报(顶部) ---------- */
+.digest {
+  position: relative;
+  background: linear-gradient(180deg,
+    hsl(var(--card) / 0.85) 0%,
+    hsl(var(--card) / 0.6) 100%);
+  border: 1px solid hsl(var(--primary) / 0.35);
+  border-radius: 1.1rem;
+  padding: 1.3rem 1.4rem 1.2rem;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 6px 30px hsl(160 70% 42% / 0.08);
+}
+.digest[hidden] { display: none; }
+.digest__accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, hsl(160 70% 42%), hsl(189 80% 50%), hsl(262 70% 60%));
+  box-shadow: 0 0 16px hsl(160 70% 42% / 0.5);
+}
+.digest__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.85rem;
+}
+.digest__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+.digest__icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.5rem;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, hsl(160 70% 42%), hsl(189 80% 50%));
+  color: white;
+  box-shadow: 0 2px 10px hsl(160 70% 42% / 0.35);
+}
+.digest__icon svg { width: 0.95rem; height: 0.95rem; }
+.digest__title {
+  font-family: "IBM Plex Serif", "Noto Serif SC", serif;
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.digest__date {
+  font-size: 0.78rem;
+  color: hsl(var(--primary));
+  background: hsl(160 70% 42% / 0.12);
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.4rem;
+  font-weight: 500;
+}
+.digest__meta {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-fg));
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+.digest__summary {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: hsl(var(--fg) / 0.92);
+  margin: 0 0 0.95rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px dashed hsl(var(--border) / 0.5);
+}
+
+.digest__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+@media (min-width: 640px) { .digest__metrics { grid-template-columns: repeat(4, 1fr); } }
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.7rem;
+  background: hsl(var(--muted) / 0.45);
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.6rem;
+}
+.metric__label {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-fg));
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
+}
+.metric__value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: hsl(var(--fg));
+  font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+}
+.metric__trend {
+  font-size: 0.7rem;
+  color: hsl(var(--primary));
+  font-weight: 500;
+  font-family: "JetBrains Mono", monospace;
+}
+.metric__bar {
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(var(--border) / 0.6);
+  overflow: hidden;
+  margin-top: 0.3rem;
+}
+.metric__bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, hsl(160 70% 42%), hsl(189 80% 50%));
+  border-radius: 2px;
+}
+
+.digest__items {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 720px) { .digest__items { grid-template-columns: 1fr 1fr; } }
+.digest__col {
+  background: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.7rem;
+  padding: 0.85rem 1rem;
+}
+.digest__col-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.digest__col-title--ai { color: hsl(160 70% 60%); }
+.digest__col-title--market { color: hsl(189 80% 65%); }
+.digest__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.digest__list li {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: hsl(var(--fg) / 0.9);
+  padding-left: 0.85rem;
+  position: relative;
+}
+.digest__list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.6);
+}
+.digest__col-title--market ~ .digest__list li::before {
+  background: hsl(var(--secondary));
+  box-shadow: 0 0 6px hsl(var(--secondary) / 0.6);
 }
 
 .news__head {

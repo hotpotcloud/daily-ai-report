@@ -9,6 +9,14 @@ const lastFetch = document.getElementById("last-fetch");
 const refreshBtn = document.getElementById("refresh-btn");
 const newsEmpty = document.getElementById("news-empty");
 
+const digestSection = document.getElementById("digest");
+const digestDate = document.getElementById("digest-date");
+const digestMeta = document.getElementById("digest-meta");
+const digestSummary = document.getElementById("digest-summary");
+const digestMetrics = document.getElementById("digest-metrics");
+const digestAiList = document.getElementById("digest-ai-list");
+const digestMarketList = document.getElementById("digest-market-list");
+
 const fab = document.getElementById("chat-fab");
 const modal = document.getElementById("chat-modal");
 const modalPanel = modal.querySelector(".chat-modal__panel");
@@ -136,6 +144,80 @@ async function loadHealth() {
     }
   } catch (e) {
     setStatus("error", "后端不可达");
+  }
+}
+
+// ---------- 今日 AI 整理日报(读 /api/digest/latest) ----------
+
+function escapeLite(text) {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderMetric(m) {
+  if (!m || !m.label) return "";
+  const value = Math.max(0, Math.min(100, Number(m.value) || 0));
+  const label = escapeLite(m.label);
+  const trend = escapeLite(m.trend || "");
+  return `<div class="metric" role="listitem">
+    <div class="metric__label">${label}</div>
+    <div class="metric__value">
+      <span>${value}</span>
+      <span class="metric__trend">${trend}</span>
+    </div>
+    <div class="metric__bar"><span class="metric__bar-fill" style="width:${value}%"></span></div>
+  </div>`;
+}
+
+function renderDigest(data) {
+  if (!data || !data.digestDate) return;
+  digestDate.textContent = data.digestDate;
+  digestMeta.textContent = data._generatedAt
+    ? "由 M3 聚合 · 更新于 " + new Date(data._generatedAt).toLocaleString("zh-CN", { hour12: false })
+    : "由 M3 聚合实时新闻";
+
+  if (data.summary) {
+    digestSummary.textContent = data.summary;
+    digestSummary.style.display = "";
+  } else {
+    digestSummary.style.display = "none";
+  }
+
+  const metrics = Array.isArray(data.metrics) ? data.metrics : [];
+  if (metrics.length) {
+    digestMetrics.innerHTML = metrics.slice(0, 4).map(renderMetric).join("");
+  } else {
+    digestMetrics.innerHTML = "";
+  }
+
+  const aiItems = Array.isArray(data.aiItems) ? data.aiItems.slice(0, 3) : [];
+  digestAiList.innerHTML = aiItems.length
+    ? aiItems.map((s) => `<li>${escapeLite(s)}</li>`).join("")
+    : '<li style="color:hsl(var(--muted-fg))">无</li>';
+
+  const marketItems = Array.isArray(data.marketItems) ? data.marketItems.slice(0, 3) : [];
+  digestMarketList.innerHTML = marketItems.length
+    ? marketItems.map((s) => `<li>${escapeLite(s)}</li>`).join("")
+    : '<li style="color:hsl(var(--muted-fg))">无</li>';
+
+  digestSection.hidden = false;
+}
+
+async function loadDigest() {
+  try {
+    const res = await fetch("/api/digest/latest", { cache: "no-store" });
+    if (res.status === 404) {
+      digestSection.hidden = true;
+      return;
+    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    renderDigest(data);
+  } catch (e) {
+    digestSection.hidden = true;
   }
 }
 
@@ -321,6 +403,7 @@ if (suggestList) {
 
 // 启动
 loadHealth();
+loadDigest();
 loadFeed();
 // 每 5 分钟自动拉一次
 setInterval(loadFeed, 5 * 60 * 1000);
