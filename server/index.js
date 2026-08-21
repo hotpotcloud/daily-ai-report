@@ -145,9 +145,10 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { message: "Not Found" });
 });
 
-const port = Number.parseInt(process.env.PORT ?? "3000", 10);
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+const port = Number.parseInt(process.env.PORT ?? "3535", 10);
+const host = process.env.HOST ?? "0.0.0.0";
+server.listen(port, host, () => {
+  console.log(`Server running at http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
 });
 
 function setCorsHeaders(res) {

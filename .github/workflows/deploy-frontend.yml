@@ -1,0 +1,97 @@
+name: Deploy Frontend + Backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "server/**"
+      - "public/**"
+      - "deploy/install-server.sh"
+      - ".github/workflows/deploy-frontend.yml"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key.raw
+          sed '1s/^\xef\xbb\xbf//' ~/.ssh/deploy_key.raw | tr -d '\r' > ~/.ssh/deploy_key
+          rm ~/.ssh/deploy_key.raw
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null
+          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            root@${{ secrets.SERVER_IP }} "echo SSH handshake OK"
+
+      - name: Prepare server directory
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "mkdir -p /opt/daily-ai-briefing/data /opt/daily-ai-briefing/public /opt/daily-ai-briefing/server /tmp/daily-ai-briefing-deploy"
+
+      - name: Push server code
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
+            server/* root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/server/
+
+      - name: Push frontend code
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
+            public/* root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/public/
+
+      - name: Push install script
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            deploy/install-server.sh \
+            root@${{ secrets.SERVER_IP }}:/tmp/daily-ai-briefing-deploy/install.sh
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "chmod 755 /tmp/daily-ai-briefing-deploy/install.sh"
+
+      - name: Run install + start service
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "MINIMAX_API_KEY='$MINIMAX_API_KEY' MINIMAX_BASE_URL='$MINIMAX_BASE_URL' bash /tmp/daily-ai-briefing-deploy/install.sh"
+
+      - name: Health check
+        if: always()
+        run: |
+          echo "### Deployment health" >> $GITHUB_STEP_SUMMARY
+          echo "- Endpoint: http://${{ secrets.SERVER_IP }}:3535/" >> $GITHUB_STEP_SUMMARY
+          sleep 2
+          RESP=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/api/health" 2>&1 || echo "fail")
+          echo "- /api/health status: $RESP" >> $GITHUB_STEP_SUMMARY
+          RESP2=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/" 2>&1 || echo "fail")
+          echo "- / (index.html) status: $RESP2" >> $GITHUB_STEP_SUMMARY
+          RESP3=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/chat.html" 2>&1 || echo "fail")
+          echo "- /chat.html status: $RESP3" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Deployment info" >> $GITHUB_STEP_SUMMARY
+          echo "- Server: ${{ secrets.SERVER_IP }}:3535" >> $GITHUB_STEP_SUMMARY
+          echo "- Public URL: http://${{ secrets.SERVER_IP }}:3535/" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat URL: http://${{ secrets.SERVER_IP }}:3535/chat.html" >> $GITHUB_STEP_SUMMARY
+          echo "- API: http://${{ secrets.SERVER_IP }}:3535/api/health" >> $GITHUB_STEP_SUMMARY
+          echo "- Job status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Service: systemctl status daily-ai-briefing" >> $GITHUB_STEP_SUMMARY
+          echo "- Log: /var/log/daily-ai-briefing.log" >> $GITHUB_STEP_SUMMARY
