@@ -8,7 +8,11 @@
     "start": "node server/index.js",
     "db:init": "node scripts/init-db.js",
     "seed": "node scripts/seed-demo.js",
-    "ingest": "node scripts/ingest-digest.js"
+    "ingest": "node scripts/ingest-digest.js",
+    "fetch-news": "node scripts/fetch-news.js",
+    "generate-digest": "node scripts/generate-digest.js",
+    "run-daily": "node scripts/run-daily.js",
+    "secret:set": "node scripts/seed-secret.js"
   },
   "dependencies": {
   }

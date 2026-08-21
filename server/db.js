@@ -34,6 +34,26 @@ export function initDb() {
   ensureColumn("digests", "details_json", "TEXT NOT NULL DEFAULT '[]'");
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS secrets (
+      name TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS trg_secrets_updated_at
+    AFTER UPDATE ON secrets
+    FOR EACH ROW
+    BEGIN
+      UPDATE secrets
+      SET updated_at = CURRENT_TIMESTAMP
+      WHERE name = OLD.name;
+    END;
+  `);
+
+  db.exec(`
     CREATE TRIGGER IF NOT EXISTS trg_digests_updated_at
     AFTER UPDATE ON digests
     FOR EACH ROW
@@ -96,6 +116,33 @@ export function upsertDigest(digest) {
     metrics_json: JSON.stringify(normalizedDigest.metrics),
     details_json: JSON.stringify(normalizedDigest.details)
   });
+}
+
+export function setSecret(name, value) {
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("secret name 不能为空");
+  }
+  if (typeof value !== "string" || !value) {
+    throw new Error("secret value 不能为空");
+  }
+  const stmt = db.prepare(`
+    INSERT INTO secrets (name, value)
+    VALUES (@name, @value)
+    ON CONFLICT(name) DO UPDATE SET
+      value = excluded.value
+  `);
+  stmt.run({ name: name.trim(), value });
+}
+
+export function getSecret(name) {
+  const row = db.prepare(`SELECT value FROM secrets WHERE name = ?`).get(name);
+  return row ? row.value : null;
+}
+
+export function listSecretNames() {
+  return db
+    .prepare(`SELECT name, created_at, updated_at FROM secrets ORDER BY name`)
+    .all();
 }
 
 export function listDigests(limit = 30) {
