@@ -1,41 +1,47 @@
-// Signal Board · Live feed 主逻辑
-// - 顶部实时新闻(全宽)
-// - 右下角浮窗 chat(FAB → modal)
+// Signal Board · Editorial
+// 实时新闻(瀑布流) + AI 整理日报(大字) + AI 浮窗
 
-const newsList = document.getElementById("news-grid-list");
-const newsCount = document.getElementById("news-count");
-const fetchPill = document.getElementById("fetch-pill");
-const lastFetch = document.getElementById("last-fetch");
-const refreshBtn = document.getElementById("refresh-btn");
-const newsEmpty = document.getElementById("news-empty");
+const el = (id) => document.getElementById(id);
 
-const digestSection = document.getElementById("digest");
-const digestDate = document.getElementById("digest-date");
-const digestMeta = document.getElementById("digest-meta");
-const digestSummary = document.getElementById("digest-summary");
-const digestMetrics = document.getElementById("digest-metrics");
-const digestAiList = document.getElementById("digest-ai-list");
-const digestMarketList = document.getElementById("digest-market-list");
+const mastheadDate = el("masthead-date");
+const heroDate = el("hero-date");
+const heroQuote = el("hero-quote");
+const heroMarketSent = el("hero-market-sentiment");
+const heroMarketTrend = el("hero-market-trend");
+const heroAiSent = el("hero-ai-sentiment");
+const heroAiTrend = el("hero-ai-trend");
+const tickerBarGrid = el("ticker-bar-grid");
+const tickerBarHint = el("ticker-bar-hint");
+const briefsAiList = el("briefs-ai-list");
+const briefsMarketList = el("briefs-market-list");
+const newsRiver = el("news-river");
+const newsCount = el("news-count");
+const fetchPill = el("fetch-pill");
+const lastFetch = el("last-fetch");
+const refreshBtn = el("refresh-btn");
+const newsEmpty = el("news-empty");
+const newsFilters = el("news-filters");
 
-const fab = document.getElementById("chat-fab");
-const modal = document.getElementById("chat-modal");
-const modalPanel = modal.querySelector(".chat-modal__panel");
-const closeBtn = document.getElementById("chat-close");
-const clearBtn = document.getElementById("chat-clear");
-const chatForm = document.getElementById("chat-form");
-const chatInput = document.getElementById("chat-input");
-const chatSend = document.getElementById("chat-send");
-const chatStream = document.getElementById("chat-stream");
-const chatModel = document.getElementById("chat-model");
-const suggestList = document.getElementById("suggest-list");
+const statusPill = el("status-pill");
+const statusText = el("status-text");
 
-const statusPill = document.getElementById("status-pill");
-const statusText = document.getElementById("status-text");
+const fab = el("chat-fab");
+const modal = el("chat-modal");
+const closeBtn = el("chat-close");
+const clearBtn = el("chat-clear");
+const chatForm = el("chat-form");
+const chatInput = el("chat-input");
+const chatSend = el("chat-send");
+const chatStream = el("chat-stream");
+const chatModel = el("chat-model");
+const suggestList = el("suggest-list");
 
 const AI_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>`;
 const USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/></svg>`;
 
 let conversationHistory = [];
+let newsData = [];
+let currentFilter = "all";
 
 // ---------- helpers ----------
 
@@ -50,18 +56,6 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text || "";
   return div.innerHTML;
-}
-
-function timeAgo(iso) {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "";
-  const diff = Math.max(0, (Date.now() - t) / 1000);
-  if (diff < 60) return "刚刚";
-  if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
-  if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
-  if (diff < 7 * 86400) return Math.floor(diff / 86400) + " 天前";
-  return new Date(iso).toLocaleDateString();
 }
 
 function renderLite(text) {
@@ -80,25 +74,122 @@ function renderLite(text) {
     .join("");
 }
 
-// ---------- 新闻 ----------
-
-function renderNewsCard(item) {
-  const cat = item.category === "ai" ? "ai" : "market";
-  const catLabel = cat === "ai" ? "AI" : "市场";
-  const source = escapeHtml(item.source || "");
-  const title = escapeHtml(item.title || "");
-  const link = escapeHtml(item.link || "#");
-  const time = timeAgo(item.publishedAt);
-  return `<a class="news-card" href="${link}" target="_blank" rel="noopener noreferrer" role="listitem">
-    <div class="news-card__meta">
-      <span class="news-card__tag news-card__tag--${cat}">${catLabel}</span>
-      <span class="news-card__sep">·</span>
-      <span class="news-card__source">${source}</span>
-    </div>
-    <div class="news-card__title">${title}</div>
-    ${time ? `<div class="news-card__time">${time}</div>` : ""}
-  </a>`;
+function timeAgo(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Math.max(0, (Date.now() - t) / 1000);
+  if (diff < 60) return "刚刚";
+  if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
+  if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
+  if (diff < 7 * 86400) return Math.floor(diff / 86400) + " 天前";
+  return new Date(iso).toLocaleDateString("zh-CN");
 }
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+function formatDateCN(d) {
+  return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+}
+
+// ---------- Hero (大字摘要 + 情绪) ----------
+
+function renderHero(data) {
+  if (!data || !data.digestDate) {
+    heroQuote.innerHTML = "<p>今日 AI 整理日报还没生成 · 等每天 8:00 定时任务跑(UTC 0:00 / 北京 8:00)。</p>";
+    heroDate.textContent = "—";
+    heroMarketSent.textContent = "—";
+    heroAiSent.textContent = "—";
+    heroMarketTrend.textContent = "—";
+    heroAiTrend.textContent = "—";
+    return;
+  }
+  heroDate.textContent = data.digestDate;
+  const summary = data.summary || "(无摘要)";
+  heroQuote.innerHTML = `<p>${escapeHtml(summary)}</p>`;
+  heroMarketSent.textContent = data.marketSentiment || "—";
+  heroAiSent.textContent = data.aiSentiment || "—";
+  const marketMetrics = (data.metrics || []).find(m => m.label === "市场风险偏好");
+  const aiMetrics = (data.metrics || []).find(m => m.label === "AI 热度");
+  heroMarketTrend.textContent = marketMetrics ? `${marketMetrics.value} / 100 · ${marketMetrics.trend || ""}` : "—";
+  heroAiTrend.textContent = aiMetrics ? `${aiMetrics.value} / 100 · ${aiMetrics.trend || ""}` : "—";
+}
+
+// ---------- Ticker Bar (4 metric) ----------
+
+function renderTicker(data) {
+  const metrics = (data && data.metrics) || [];
+  if (!metrics.length) {
+    tickerBarGrid.innerHTML = "";
+    tickerBarHint.textContent = "暂无指标";
+    return;
+  }
+  tickerBarHint.textContent = metrics.length + " 项 · 100 制";
+  tickerBarGrid.innerHTML = metrics.slice(0, 4).map((m, i) => `
+    <div class="metric" role="listitem">
+      <span class="metric__no">№ 0${i + 1}</span>
+      <div class="metric__label">${escapeHtml(m.label || "")}</div>
+      <div class="metric__value">${Math.max(0, Math.min(100, Number(m.value) || 0))}</div>
+      <div class="metric__trend">${escapeHtml(m.trend || "—")}</div>
+      <div class="metric__bar"><span class="metric__bar-fill" style="width:${Math.max(0, Math.min(100, Number(m.value) || 0))}%"></span></div>
+    </div>
+  `).join("");
+}
+
+// ---------- Briefs (AI / Market 双列) ----------
+
+function renderBriefs(data) {
+  briefsAiList.innerHTML = "";
+  briefsMarketList.innerHTML = "";
+
+  const ai = (data && data.aiItems) || [];
+  const market = (data && data.marketItems) || [];
+
+  briefsAiList.style.counterReset = "brief";
+  briefsMarketList.style.counterReset = "brief";
+
+  briefsAiList.innerHTML = ai.length
+    ? ai.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
+    : '<li><span style="color:var(--fg-mute)">暂无 AI 重点</span></li>';
+  briefsMarketList.innerHTML = market.length
+    ? market.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
+    : '<li><span style="color:var(--fg-mute)">暂无市场重点</span></li>';
+}
+
+// ---------- News River (瀑布流) ----------
+
+function renderNews(items) {
+  const filtered = currentFilter === "all"
+    ? items
+    : items.filter(it => it.category === currentFilter);
+
+  if (!filtered.length) {
+    newsRiver.innerHTML = "";
+    newsEmpty.hidden = false;
+    newsCount.textContent = "0 条";
+    return;
+  }
+  newsEmpty.hidden = true;
+
+  newsRiver.innerHTML = filtered.map((it, idx) => {
+    const cat = it.category || "tech";
+    const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
+    const no = String(idx + 1).padStart(3, "0");
+    return `<a class="news-card" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" role="listitem" data-cat="${cat}">
+      <div class="news-card__kicker">
+        <span class="cat cat--${cat}">${catLabel}</span>
+        <span class="news-card__source">${escapeHtml(it.source || "")}</span>
+        <span class="news-card__no">№ ${no}</span>
+      </div>
+      <h3 class="news-card__title">${escapeHtml(it.title || "")}</h3>
+      ${it.description ? `<p class="news-card__desc">${escapeHtml(it.description)}</p>` : ""}
+      ${it.publishedAt ? `<div class="news-card__time">${escapeHtml(timeAgo(it.publishedAt))}</div>` : ""}
+    </a>`;
+  }).join("");
+
+  newsCount.textContent = filtered.length + " 条";
+}
+
+// ---------- 数据加载 ----------
 
 async function loadFeed() {
   fetchPill.textContent = "拉取中…";
@@ -107,18 +198,17 @@ async function loadFeed() {
     const res = await fetch("/api/news", { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    const items = data.items || [];
-    if (items.length) {
-      newsList.innerHTML = items.map(renderNewsCard).join("");
-      newsEmpty.hidden = true;
-    } else {
-      newsList.innerHTML = "";
-      newsEmpty.hidden = false;
-    }
-    const failedCount = (data.failedSources || []).length;
-    newsCount.textContent = items.length + " 条";
-    if (failedCount) {
-      fetchPill.textContent = "实时拉取 · 零缓存 · " + failedCount + " 源失败";
+    newsData = data.items || [];
+    renderNews(newsData);
+
+    const failed = (data.failedSources || []).length;
+    const filtered = data.filteredNonChinese || 0;
+    if (failed && filtered) {
+      fetchPill.textContent = `实时拉取 · 零缓存 · ${failed} 源失败 · 过滤 ${filtered} 条非中文`;
+    } else if (failed) {
+      fetchPill.textContent = `实时拉取 · 零缓存 · ${failed} 源失败`;
+    } else if (filtered) {
+      fetchPill.textContent = `实时拉取 · 零缓存 · 过滤 ${filtered} 条非中文`;
     } else {
       fetchPill.textContent = "实时拉取 · 零缓存";
     }
@@ -128,6 +218,33 @@ async function loadFeed() {
     newsCount.textContent = "0 条";
   } finally {
     refreshBtn.classList.remove("is-loading");
+  }
+}
+
+async function loadDigest() {
+  try {
+    const res = await fetch("/api/digest/latest", { cache: "no-store" });
+    if (res.status === 404) {
+      renderHero(null);
+      renderTicker(null);
+      renderBriefs(null);
+      return;
+    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    renderHero(data);
+    renderTicker(data);
+    renderBriefs(data);
+    if (data._generatedAt) {
+      const dt = new Date(data._generatedAt);
+      mastheadDate.textContent = formatDateCN(dt) + " · M3";
+    } else if (data.digestDate) {
+      mastheadDate.textContent = data.digestDate + " · M3";
+    }
+  } catch (e) {
+    renderHero(null);
+    renderTicker(null);
+    renderBriefs(null);
   }
 }
 
@@ -147,85 +264,10 @@ async function loadHealth() {
   }
 }
 
-// ---------- 今日 AI 整理日报(读 /api/digest/latest) ----------
-
-function escapeLite(text) {
-  if (!text) return "";
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function renderMetric(m) {
-  if (!m || !m.label) return "";
-  const value = Math.max(0, Math.min(100, Number(m.value) || 0));
-  const label = escapeLite(m.label);
-  const trend = escapeLite(m.trend || "");
-  return `<div class="metric" role="listitem">
-    <div class="metric__label">${label}</div>
-    <div class="metric__value">
-      <span>${value}</span>
-      <span class="metric__trend">${trend}</span>
-    </div>
-    <div class="metric__bar"><span class="metric__bar-fill" style="width:${value}%"></span></div>
-  </div>`;
-}
-
-function renderDigest(data) {
-  if (!data || !data.digestDate) return;
-  digestDate.textContent = data.digestDate;
-  digestMeta.textContent = data._generatedAt
-    ? "由 M3 聚合 · 更新于 " + new Date(data._generatedAt).toLocaleString("zh-CN", { hour12: false })
-    : "由 M3 聚合实时新闻";
-
-  if (data.summary) {
-    digestSummary.textContent = data.summary;
-    digestSummary.style.display = "";
-  } else {
-    digestSummary.style.display = "none";
-  }
-
-  const metrics = Array.isArray(data.metrics) ? data.metrics : [];
-  if (metrics.length) {
-    digestMetrics.innerHTML = metrics.slice(0, 4).map(renderMetric).join("");
-  } else {
-    digestMetrics.innerHTML = "";
-  }
-
-  const aiItems = Array.isArray(data.aiItems) ? data.aiItems.slice(0, 3) : [];
-  digestAiList.innerHTML = aiItems.length
-    ? aiItems.map((s) => `<li>${escapeLite(s)}</li>`).join("")
-    : '<li style="color:hsl(var(--muted-fg))">无</li>';
-
-  const marketItems = Array.isArray(data.marketItems) ? data.marketItems.slice(0, 3) : [];
-  digestMarketList.innerHTML = marketItems.length
-    ? marketItems.map((s) => `<li>${escapeLite(s)}</li>`).join("")
-    : '<li style="color:hsl(var(--muted-fg))">无</li>';
-
-  digestSection.hidden = false;
-}
-
-async function loadDigest() {
-  try {
-    const res = await fetch("/api/digest/latest", { cache: "no-store" });
-    if (res.status === 404) {
-      digestSection.hidden = true;
-      return;
-    }
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    renderDigest(data);
-  } catch (e) {
-    digestSection.hidden = true;
-  }
-}
-
 // ---------- Chat modal ----------
 
 function openModal() {
   modal.hidden = false;
-  // 强制 reflow,让 transition 生效
   void modal.offsetHeight;
   modal.classList.add("is-open");
   modal.setAttribute("aria-hidden", "false");
@@ -267,7 +309,6 @@ async function sendMessage(text) {
   makeMessage("user", trimmed);
   conversationHistory.push({ role: "user", content: trimmed });
 
-  // 隐藏建议
   if (suggestList) {
     const welcome = suggestList.closest(".msg--welcome");
     if (welcome) welcome.style.display = "none";
@@ -336,7 +377,6 @@ async function sendMessage(text) {
 
 function clearChat() {
   conversationHistory = [];
-  // 保留 welcome message,删其他
   Array.from(chatStream.querySelectorAll(".msg")).forEach((m) => {
     if (!m.classList.contains("msg--welcome")) m.remove();
   });
@@ -354,16 +394,8 @@ function autoResize() {
 fab.addEventListener("click", openModal);
 closeBtn.addEventListener("click", closeModal);
 clearBtn.addEventListener("click", clearChat);
-
-// 点 modal 背景关闭
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) closeModal();
-});
-
-// ESC 关闭
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !modal.hidden) closeModal();
-});
+modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) closeModal(); });
 
 refreshBtn.addEventListener("click", () => loadFeed());
 
@@ -401,9 +433,17 @@ if (suggestList) {
   });
 }
 
+newsFilters.addEventListener("click", (e) => {
+  const btn = e.target.closest(".filter");
+  if (!btn) return;
+  newsFilters.querySelectorAll(".filter").forEach(b => b.classList.remove("is-active"));
+  btn.classList.add("is-active");
+  currentFilter = btn.dataset.cat;
+  renderNews(newsData);
+});
+
 // 启动
 loadHealth();
 loadDigest();
 loadFeed();
-// 每 5 分钟自动拉一次
 setInterval(loadFeed, 5 * 60 * 1000);

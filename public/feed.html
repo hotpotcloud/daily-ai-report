@@ -1,93 +1,133 @@
 <!doctype html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN" class="dark editorial">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0a0f" />
-    <title>Signal Board · Live · daily-ai-briefing</title>
+    <title>Signal Board · daily-ai-briefing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/feed.css" />
   </head>
   <body>
-    <a class="sr-skip" href="#news-grid">跳到新闻</a>
+    <a class="sr-skip" href="#main">跳到内容</a>
 
-    <!-- 装饰背景 -->
-    <div class="bg-stage" aria-hidden="true">
-      <div class="bg-orb bg-orb--emerald" style="top:-12rem;left:-10rem;width:42rem;height:42rem"></div>
-      <div class="bg-orb bg-orb--cyan" style="top:35vh;right:-14rem;width:38rem;height:38rem"></div>
-      <div class="bg-orb bg-orb--violet" style="bottom:-14rem;left:30vw;width:34rem;height:34rem"></div>
-      <div class="bg-grid"></div>
-      <div class="bg-grain"></div>
-    </div>
-
-    <!-- 顶部 header -->
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Signal Board 首页">
-        <span class="brand__mark" aria-hidden="true"><span class="brand__mark-core"></span></span>
-        <span class="brand__text">
-          <span class="brand__title">Serenity</span>
-          <span class="brand__sub">Signal · Board</span>
-        </span>
-      </a>
-      <div class="topbar__meta">
-        <span class="status-pill" id="status-pill"><span class="status-pill__dot"></span><span id="status-text" class="mono">就绪</span></span>
-        <span class="date-pill mono" id="last-fetch">—</span>
-        <button class="refresh-btn" id="refresh-btn" aria-label="刷新新闻">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-3.13-6.83"/><path d="M21 4v5h-5"/></svg>
-          <span>刷新</span>
-        </button>
+    <!-- =============== MASTHEAD · 编辑型头版 =============== -->
+    <header class="masthead" role="banner">
+      <div class="masthead__row">
+        <div class="masthead__brand">
+          <span class="masthead__mark" aria-hidden="true"></span>
+          <div class="masthead__title">
+            <span class="masthead__name">Signal Board</span>
+            <span class="masthead__sub">— 每日 AI 与市场要闻 · 由 M3 聚合</span>
+          </div>
+        </div>
+        <div class="masthead__right">
+          <span class="masthead__date mono" id="masthead-date">—</span>
+          <span class="masthead__status" id="status-pill">
+            <span class="masthead__dot"></span>
+            <span id="status-text" class="mono">就绪</span>
+          </span>
+          <button class="masthead__btn" id="refresh-btn" type="button" aria-label="刷新实时新闻">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a9 9 0 1 1-3.13-6.83"/><path d="M21 4v5h-5"/></svg>
+            <span>REFRESH</span>
+          </button>
+        </div>
       </div>
     </header>
 
-    <main id="main" class="page">
-      <!-- 今日 AI 整理日报(由 daily-briefing 定时任务每天聚合推送) -->
-      <section class="digest" id="digest" aria-labelledby="digest-title" hidden>
-        <div class="digest__accent" aria-hidden="true"></div>
-        <header class="digest__head">
-          <div class="digest__title-row">
-            <span class="digest__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/>
-                <path d="M12 22V12"/><path d="m4 7 8 5 8-5"/>
-              </svg>
-            </span>
-            <h2 class="digest__title" id="digest-title">今日 AI 整理日报</h2>
-            <span class="digest__date mono" id="digest-date">—</span>
+    <main id="main" class="paper">
+
+      <!-- =============== 头条区 · 大字 hero + 情绪数字 =============== -->
+      <section class="hero" id="hero" aria-label="今日头条">
+        <!-- 左:大字摘要(来自 daily digest) -->
+        <div class="hero__lede" id="hero-lede">
+          <p class="kicker">
+            <span class="kicker__label">№ 01 / TODAY&apos;S BRIEFING</span>
+            <span class="kicker__date mono" id="hero-date">—</span>
+          </p>
+          <blockquote class="hero__quote" id="hero-quote">
+            <p>正在加载今日 AI 整理摘要……</p>
+          </blockquote>
+          <p class="hero__byline mono">
+            编辑视角 · 由 MiniMax-M3 实时聚合 · 8:00 AM UTC 自动更新
+          </p>
+        </div>
+
+        <!-- 右:大数字情绪 -->
+        <aside class="hero__meter" id="hero-meter" aria-label="今日市场情绪">
+          <p class="kicker">
+            <span class="kicker__label">№ 02 / SENTIMENT</span>
+          </p>
+          <div class="hero__meter-grid">
+            <div class="hero__meter-cell">
+              <div class="hero__meter-label mono">市场情绪</div>
+              <div class="hero__meter-value" id="hero-market-sentiment">—</div>
+              <div class="hero__meter-trend" id="hero-market-trend">—</div>
+            </div>
+            <div class="hero__meter-cell">
+              <div class="hero__meter-label mono">AI 热度</div>
+              <div class="hero__meter-value" id="hero-ai-sentiment">—</div>
+              <div class="hero__meter-trend" id="hero-ai-trend">—</div>
+            </div>
           </div>
-          <p class="digest__meta mono" id="digest-meta">由 M3 聚合实时新闻</p>
-        </header>
-        <p class="digest__summary" id="digest-summary">—</p>
-        <div class="digest__metrics" id="digest-metrics" role="list" aria-label="今日指标"></div>
-        <div class="digest__items" id="digest-items">
-          <div class="digest__col">
-            <h3 class="digest__col-title digest__col-title--ai">AI 重点</h3>
-            <ul class="digest__list" id="digest-ai-list"></ul>
-          </div>
-          <div class="digest__col">
-            <h3 class="digest__col-title digest__col-title--market">市场重点</h3>
-            <ul class="digest__list" id="digest-market-list"></ul>
-          </div>
+        </aside>
+      </section>
+
+      <!-- =============== 指标带 · 4 metric 横排 =============== -->
+      <section class="ticker-bar" id="ticker-bar" aria-label="今日四大指标">
+        <div class="ticker-bar__head">
+          <span class="kicker__label">№ 03 / INDICATORS</span>
+          <span class="ticker-bar__hint mono" id="ticker-bar-hint">4 项指标</span>
+        </div>
+        <div class="ticker-bar__grid" id="ticker-bar-grid"></div>
+      </section>
+
+      <!-- =============== 重点区 · AI / 市场 双列 =============== -->
+      <section class="briefs" id="briefs" aria-label="今日重点">
+        <div class="briefs__col">
+          <header class="briefs__head">
+            <span class="briefs__num mono">A</span>
+            <h2 class="briefs__title">AI 重点</h2>
+            <span class="briefs__line" aria-hidden="true"></span>
+          </header>
+          <ol class="briefs__list" id="briefs-ai-list"></ol>
+        </div>
+        <div class="briefs__col">
+          <header class="briefs__head">
+            <span class="briefs__num mono">M</span>
+            <h2 class="briefs__title">市场重点</h2>
+            <span class="briefs__line" aria-hidden="true"></span>
+          </header>
+          <ol class="briefs__list" id="briefs-market-list"></ol>
         </div>
       </section>
 
-      <!-- 实时新闻区(全宽) -->
-      <section class="news" id="news-grid" aria-labelledby="news-title">
-        <div class="news__head">
-          <div>
-            <h1 class="news__title" id="news-title">实时新闻</h1>
-            <p class="news__sub">
-              <span class="news__count" id="news-count">— 条</span>
+      <!-- =============== 实时新闻瀑布流 =============== -->
+      <section class="news" id="news" aria-labelledby="news-title">
+        <header class="news__head">
+          <div class="news__head-left">
+            <h2 class="news__title" id="news-title">实时新闻流</h2>
+            <p class="news__sub mono">
+              <span id="news-count">— 条</span>
               <span class="news__sep">·</span>
-              <span class="news__cache" id="fetch-pill">实时拉取 · 零缓存</span>
+              <span id="fetch-pill">实时拉取 · 零缓存</span>
+              <span class="news__sep">·</span>
+              <span id="last-fetch">—</span>
             </p>
           </div>
-        </div>
-        <div class="news__grid" id="news-grid-list" role="list" aria-label="新闻卡片"></div>
+          <div class="news__filters" id="news-filters" role="tablist">
+            <button class="filter is-active" data-cat="all" type="button">全部</button>
+            <button class="filter" data-cat="ai" type="button">AI</button>
+            <button class="filter" data-cat="tech" type="button">科技</button>
+            <button class="filter" data-cat="market" type="button">市场</button>
+          </div>
+        </header>
+        <div class="news__river" id="news-river" role="list" aria-label="新闻流"></div>
         <div class="news__empty" id="news-empty" hidden>
           <p>暂无新闻</p>
           <p class="news__empty-sub">刷新试试,或检查数据源</p>
@@ -95,7 +135,14 @@
       </section>
     </main>
 
-    <!-- Chat 浮窗按钮(右下) -->
+    <!-- =============== Footer · 极简一行 =============== -->
+    <footer class="footer">
+      <span class="mono">© 2026 · Signal Board · daily-ai-briefing</span>
+      <span class="footer__sep">·</span>
+      <span class="mono">No.{003} / 北京时间</span>
+    </footer>
+
+    <!-- =============== Chat 浮窗(右下角)=============== -->
     <button
       class="fab"
       id="chat-fab"
@@ -104,13 +151,12 @@
       aria-expanded="false"
       aria-controls="chat-modal"
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
       </svg>
-      <span class="fab__label">AI 助手</span>
+      <span class="fab__label">问 AI</span>
     </button>
 
-    <!-- Chat 弹窗(默认隐藏) -->
     <div
       class="chat-modal"
       id="chat-modal"
@@ -123,7 +169,7 @@
         <header class="chat-modal__head">
           <div class="chat-modal__title">
             <span class="chat-modal__dot" aria-hidden="true"></span>
-            <span id="chat-modal-title">AI 助手</span>
+            <span id="chat-modal-title">AI 对话</span>
             <span class="chat-modal__model mono" id="chat-model">—</span>
           </div>
           <div class="chat-modal__actions">
@@ -142,8 +188,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>
               </div>
               <div class="msg__bubble">
-                <p class="msg__title">AI 助手已就位</p>
-                <p class="msg__body">我看到页面上的实时新闻,可以基于这些内容问问题。试试:</p>
+                <p class="msg__title">AI 助手</p>
+                <p class="msg__body">基于本页实时新闻回答问题,试试:</p>
                 <ul class="msg__suggest" id="suggest-list">
                   <li><button class="chip" data-q="今天 AI 行业最值得关注的 1 件事?">今天 AI 行业最值得关注的 1 件事?</button></li>
                   <li><button class="chip" data-q="半导体景气最近怎么走?">半导体景气最近怎么走?</button></li>
