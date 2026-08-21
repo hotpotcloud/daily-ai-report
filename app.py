@@ -14,6 +14,7 @@ import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Flask, request, jsonify, Response, send_from_directory, stream_with_context
 
@@ -112,12 +113,19 @@ def fetch_source(source):
 def fetch_all_news():
     results = []
     failed = []
-    for src in RSS_SOURCES:
-        r = fetch_source(src)
-        if r is None:
-            failed.append({"source": src["name"], "error": "fetch failed"})
-        else:
-            results.extend(r)
+    # 并发抓取,避免单源慢导致整体超时
+    with ThreadPoolExecutor(max_workers=len(RSS_SOURCES)) as ex:
+        futures = {ex.submit(fetch_source, src): src for src in RSS_SOURCES}
+        for fut in as_completed(futures):
+            src = futures[fut]
+            try:
+                r = fut.result(timeout=20)
+            except Exception as e:
+                r = None
+            if r is None:
+                failed.append({"source": src["name"], "error": "fetch failed"})
+            else:
+                results.extend(r)
 
     def sort_key(item):
         try:
