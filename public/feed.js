@@ -16,6 +16,7 @@ const briefsAiList = el("briefs-ai-list");
 const briefsMarketList = el("briefs-market-list");
 const briefsAnalysis = el("briefs-analysis");
 const newsRiver = el("news-river");
+const newsFeatured = el("news-featured");
 const newsCount = el("news-count");
 const fetchPill = el("fetch-pill");
 const lastFetch = el("last-fetch");
@@ -182,29 +183,64 @@ function renderNews(items) {
 
   if (!filtered.length) {
     newsRiver.innerHTML = "";
+    newsFeatured.innerHTML = "";
     newsEmpty.hidden = false;
     newsCount.textContent = "0 条";
     return;
   }
   newsEmpty.hidden = true;
 
-  newsRiver.innerHTML = filtered.map((it, idx) => {
+  // 1) 焦点卡片:第一条有图的(优先)或第一条
+  const featured = filtered.find(it => it.image) || filtered[0];
+  const rest = filtered.filter(it => it !== featured);
+  newsFeatured.innerHTML = renderFeatured(featured);
+
+  // 2) 列表:缩略图卡(2-col 网格)
+  newsRiver.innerHTML = rest.map((it, idx) => {
     const cat = it.category || "tech";
     const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
     const no = String(idx + 1).padStart(3, "0");
+    const thumb = it.image
+      ? `<div class="news-card__thumb"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('news-card__thumb--empty');this.remove();" /></div>`
+      : `<div class="news-card__thumb news-card__thumb--empty"><span class="news-card__thumb-mark">${catLabel[0]}</span></div>`;
     return `<a class="news-card" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" role="listitem" data-cat="${cat}">
-      <div class="news-card__kicker">
-        <span class="cat cat--${cat}">${catLabel}</span>
-        <span class="news-card__source">${escapeHtml(it.source || "")}</span>
-        <span class="news-card__no">№ ${no}</span>
+      ${thumb}
+      <div class="news-card__body">
+        <div class="news-card__kicker">
+          <span class="cat cat--${cat}">${catLabel}</span>
+          <span class="news-card__source">${escapeHtml(it.source || "")}</span>
+        </div>
+        <h3 class="news-card__title">${escapeHtml(it.title || "")}</h3>
+        <div class="news-card__time mono">${escapeHtml(timeAgo(it.publishedAt) || "—")}</div>
       </div>
-      <h3 class="news-card__title">${escapeHtml(it.title || "")}</h3>
-      ${it.description ? `<p class="news-card__desc">${escapeHtml(it.description)}</p>` : ""}
-      ${it.publishedAt ? `<div class="news-card__time">${escapeHtml(timeAgo(it.publishedAt))}</div>` : ""}
     </a>`;
   }).join("");
 
   newsCount.textContent = filtered.length + " 条";
+}
+
+function renderFeatured(it) {
+  if (!it) return "";
+  const cat = it.category || "tech";
+  const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
+  const img = it.image
+    ? `<div class="featured__image"><img src="${escapeHtml(it.image)}" alt="" loading="eager" onerror="this.parentNode.classList.add('featured__image--empty');this.remove();" /></div>`
+    : `<div class="featured__image featured__image--empty"><span class="featured__image-mark">${catLabel}</span></div>`;
+  return `<a class="featured" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-cat="${cat}">
+    ${img}
+    <div class="featured__body">
+      <div class="featured__kicker">
+        <span class="cat cat--${cat}">${catLabel}</span>
+        <span class="featured__source mono">${escapeHtml(it.source || "")}</span>
+        <span class="featured__no mono">№ TOP</span>
+      </div>
+      <h3 class="featured__title">${escapeHtml(it.title || "")}</h3>
+      ${it.description ? `<p class="featured__desc">${escapeHtml(it.description)}</p>` : ""}
+      <div class="featured__meta mono">
+        ${it.publishedAt ? escapeHtml(timeAgo(it.publishedAt)) : "—"}
+      </div>
+    </div>
+  </a>`;
 }
 
 // ---------- 数据加载 ----------

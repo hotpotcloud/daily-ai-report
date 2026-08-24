@@ -202,15 +202,41 @@ def parse_rss(xml_text):
         title = strip_html(t.text if t is not None and t.text else "")
         link = (l.text or "").strip() if l is not None and l.text else ""
         pub = p.text if p is not None and p.text else None
-        desc = strip_html(d.text if d is not None and d.text else "")[:400]
+        desc_raw = d.text if d is not None and d.text else ""
+        desc = strip_html(desc_raw)[:400]
+        # 图片:enclosure > media:* > description 里的 <img>
+        image = _extract_rss_image(item, desc_raw)
         if title and link:
             items.append({
                 "title": title,
                 "link": link,
                 "publishedAt": pub,
-                "description": desc
+                "description": desc,
+                "image": image,
             })
     return items
+
+
+def _extract_rss_image(item, desc_raw):
+    # 1) <enclosure type="image/...">
+    for enc in item.iter("enclosure"):
+        if (enc.get("type") or "").startswith("image/"):
+            url = enc.get("url")
+            if url:
+                return url.strip()
+    # 2) <media:thumbnail> / <media:content>
+    for child in item.iter():
+        local = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+        if local in ("thumbnail", "content") and "media" in (child.tag):
+            url = child.get("url")
+            if url:
+                return url.strip()
+    # 3) 第一张 <img> 在 description 里
+    if desc_raw:
+        m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', desc_raw, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return None
 
 
 def parse_json_wscn(text):
@@ -232,11 +258,17 @@ def parse_json_wscn(text):
                 pub_iso = datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat()
             except (ValueError, TypeError, OSError):
                 pass
+        # 图片:image.uri
+        image = None
+        img = it.get("image")
+        if isinstance(img, dict):
+            image = (img.get("uri") or "").strip() or None
         out.append({
             "title": title,
             "link": it.get("uri") or "",
             "publishedAt": pub_iso,
             "description": (it.get("content_short") or "")[:400],
+            "image": image,
         })
     return out
 
@@ -264,12 +296,22 @@ def parse_json_sina(text):
         url = it.get("url") or ""
         if not url and isinstance(it.get("urls"), list) and it["urls"]:
             url = it["urls"][0]
+        # 图片:img.u > images[0].u
+        image = None
+        img = it.get("img")
+        if isinstance(img, dict) and img.get("u"):
+            image = img["u"]
+        elif isinstance(it.get("images"), list) and it["images"]:
+            first = it["images"][0]
+            if isinstance(first, dict) and first.get("u"):
+                image = first["u"]
         out.append({
             "title": title,
             "link": url,
             "publishedAt": pub_iso,
             "description": (it.get("intro") or "")[:400],
             "media": it.get("media_name", ""),
+            "image": image,
         })
     return out
 
@@ -379,7 +421,7 @@ def fetch_all_news():
         "failedSources": failed,
         "filteredNonChinese": filtered_out,
         "filteredPlaceholder": placeholder_out,
-        "items": deduped[:60],
+        "items": deduped[:30],
     }
 
 # ---------- M3 chat 调用 ----------
@@ -388,7 +430,7 @@ def build_chat_messages(user_messages):
     """注入实时新闻到 system prompt。"""
     news = fetch_all_news()
     lines = []
-    for it in news.get("items", [])[:15]:
+    for it in news.get("items", [])[:12]:
         lines.append(f"- [{it.get('source', '')}] {it.get('title', '')}")
     news_text = "\n".join(lines)
     system = (
