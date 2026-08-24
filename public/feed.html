@@ -58,7 +58,7 @@
           </p>
         </div>
 
-        <!-- 右:大数字情绪 -->
+        <!-- 右:大数字情绪 + 涨跌幅榜 -->
         <aside class="hero__meter" id="hero-meter" aria-label="今日市场情绪">
           <p class="kicker">
             <span class="kicker__label">№ 02 / SENTIMENT</span>
@@ -73,6 +73,28 @@
               <div class="hero__meter-label mono">AI 热度</div>
               <div class="hero__meter-value" id="hero-ai-sentiment">—</div>
               <div class="hero__meter-trend" id="hero-ai-trend">—</div>
+            </div>
+          </div>
+          <div class="hero__movers">
+            <div class="movers__col movers__col--up">
+              <h4 class="movers__title">
+                <span class="movers__arrow">▲</span>
+                <span>涨幅榜</span>
+                <span class="movers__hint mono">今日</span>
+              </h4>
+              <ol class="movers__list" id="movers-up">
+                <li class="movers__empty">暂无数据</li>
+              </ol>
+            </div>
+            <div class="movers__col movers__col--down">
+              <h4 class="movers__title">
+                <span class="movers__arrow">▼</span>
+                <span>跌幅榜</span>
+                <span class="movers__hint mono">今日</span>
+              </h4>
+              <ol class="movers__list" id="movers-down">
+                <li class="movers__empty">暂无数据</li>
+              </ol>
             </div>
           </div>
         </aside>

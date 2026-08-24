@@ -15,6 +15,8 @@ const tickerBarHint = el("ticker-bar-hint");
 const briefsAiList = el("briefs-ai-list");
 const briefsMarketList = el("briefs-market-list");
 const briefsAnalysis = el("briefs-analysis");
+const moversUp = el("movers-up");
+const moversDown = el("movers-down");
 const newsRiver = el("news-river");
 const newsFeatured = el("news-featured");
 const newsCount = el("news-count");
@@ -44,6 +46,64 @@ const USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 let conversationHistory = [];
 let newsData = [];
 let currentFilter = "all";
+
+// ---------- MOVERS · 从新闻标题里正则抽个股涨跌 ----------
+
+// 名称:2-6 个中英文字,内部不能含"涨/跌"等关键字
+const NAME_RE = "([\\u4e00-\\u9fa5A-Za-z·\\-]{2,6})";
+const UP_KW = "(?:涨(?:超|逾|近|约|超)?|涨幅|升|走高|上涨|高开(?:逾|超)?|盘中(?:升|涨)|开盘涨|早盘涨|快速涨|拉升|翻红|涨至)";
+const DN_KW = "(?:跌(?:超|逾|近|约|超)?|跌幅|走低|下跌|低开(?:逾|超)?|盘中跌|开盘跌|早盘跌|快速跌|下挫|下探|翻绿|跌至)";
+const PCT_RE = "([\\d]+(?:\\.[\\d]+)?)\\s*%";
+
+// 不能作为名称结尾的修饰词(避免把"半年纯利同比"当名称)
+const NAME_BAD_SUFFIX = /(?:同比|环比|上半年|下半年|前三季|本季|全年|年度|季度|今年|去年|今日|今天|盘中|午盘|收盘|开盘|早盘|本月|上月|预期|预计|预估|累计|增至|报|营收|净利|溢利|业绩|股东|应占|盈利|增长|下滑|减少|增加)$/;
+
+function extractMovers(items) {
+  const up = [];
+  const down = [];
+  const seen = new Set();
+  const isBadName = (n) => /涨幅|跌幅|盘中|开盘|早盘|今天|今日|收报|午盘|收盘|业绩|净利|溢利|股东|应占|营收|盈利/.test(n);
+  const collect = (title, kw, sign) => {
+    const re = new RegExp(NAME_RE + kw + PCT_RE, "g");
+    let m;
+    while ((m = re.exec(title)) !== null) {
+      const name = m[1];
+      const pct = parseFloat(m[2]);
+      if (!name || pct <= 0 || pct >= 30) continue;
+      if (NAME_BAD_SUFFIX.test(name)) continue;
+      if (/[涨跌升走低开]/.test(name.slice(-1))) continue;
+      if (isBadName(name)) continue;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      (sign > 0 ? up : down).push({ name, pct });
+    }
+  };
+  for (const it of items || []) {
+    const title = it.title || "";
+    collect(title, UP_KW, +1);
+    collect(title, DN_KW, -1);
+  }
+  up.sort((a, b) => b.pct - a.pct);
+  down.sort((a, b) => b.pct - a.pct);
+  return { up: up.slice(0, 3), down: down.slice(0, 3) };
+}
+
+function renderMovers(movers) {
+  const renderCol = (ol, list, sign) => {
+    if (!list.length) {
+      ol.innerHTML = '<li class="movers__empty">暂无数据</li>';
+      return;
+    }
+    ol.innerHTML = list.map(m => `
+      <li>
+        <span class="movers__name">${escapeHtml(m.name)}</span>
+        <span class="movers__change">${sign}${m.pct.toFixed(m.pct < 10 ? 2 : 1)}%</span>
+      </li>
+    `).join("");
+  };
+  renderCol(moversUp, movers.up, "+");
+  renderCol(moversDown, movers.down, "-");
+}
 
 // ---------- helpers ----------
 
@@ -116,7 +176,16 @@ function renderHero(data) {
   heroAiTrend.textContent = aiMetrics ? `${aiMetrics.value} / 100 · ${aiMetrics.trend || ""}` : "—";
 }
 
-// ---------- Ticker Bar (4 metric) ----------
+// ---------- Ticker Bar (4 metric with SVG icons) ----------
+
+// 与 digest.metrics[].label 一一对应的 SVG 图标
+const METRIC_ICONS = {
+  "市场风险偏好": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><polyline points="14 7 20 7 20 13"/></svg>',
+  "AI 热度":     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  "半导体景气":   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="1"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>',
+  "避险需求":     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>',
+};
+const DEFAULT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg>';
 
 function renderTicker(data) {
   const metrics = (data && data.metrics) || [];
@@ -126,15 +195,23 @@ function renderTicker(data) {
     return;
   }
   tickerBarHint.textContent = metrics.length + " 项 · 100 制";
-  tickerBarGrid.innerHTML = metrics.slice(0, 4).map((m, i) => `
+  tickerBarGrid.innerHTML = metrics.slice(0, 4).map((m, i) => {
+    const v = Math.max(0, Math.min(100, Number(m.value) || 0));
+    const label = m.label || "";
+    const icon = METRIC_ICONS[label] || DEFAULT_ICON;
+    return `
     <div class="metric" role="listitem">
       <span class="metric__no">№ 0${i + 1}</span>
-      <div class="metric__label">${escapeHtml(m.label || "")}</div>
-      <div class="metric__value">${Math.max(0, Math.min(100, Number(m.value) || 0))}</div>
+      <div class="metric__head">
+        <span class="metric__icon">${icon}</span>
+        <span class="metric__label">${escapeHtml(label)}</span>
+      </div>
+      <div class="metric__value">${v}</div>
       <div class="metric__trend">${escapeHtml(m.trend || "—")}</div>
-      <div class="metric__bar"><span class="metric__bar-fill" style="width:${Math.max(0, Math.min(100, Number(m.value) || 0))}%"></span></div>
+      <div class="metric__bar"><span class="metric__bar-fill" style="width:${v}%"></span></div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 // ---------- Briefs (AI / Market 双列) ----------
@@ -254,6 +331,7 @@ async function loadFeed() {
     const data = await res.json();
     newsData = data.items || [];
     renderNews(newsData);
+    renderMovers(extractMovers(newsData));
 
     const failed = (data.failedSources || []).length;
     const filtered = data.filteredNonChinese || 0;
