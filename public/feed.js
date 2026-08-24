@@ -14,6 +14,7 @@ const tickerBarGrid = el("ticker-bar-grid");
 const tickerBarHint = el("ticker-bar-hint");
 const briefsAiList = el("briefs-ai-list");
 const briefsMarketList = el("briefs-market-list");
+const briefsAnalysis = el("briefs-analysis");
 const newsRiver = el("news-river");
 const newsCount = el("news-count");
 const fetchPill = el("fetch-pill");
@@ -140,9 +141,11 @@ function renderTicker(data) {
 function renderBriefs(data) {
   briefsAiList.innerHTML = "";
   briefsMarketList.innerHTML = "";
+  briefsAnalysis.innerHTML = "";
 
   const ai = (data && data.aiItems) || [];
   const market = (data && data.marketItems) || [];
+  const details = (data && data.details) || [];
 
   briefsAiList.style.counterReset = "brief";
   briefsMarketList.style.counterReset = "brief";
@@ -153,6 +156,21 @@ function renderBriefs(data) {
   briefsMarketList.innerHTML = market.length
     ? market.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
     : '<li><span style="color:var(--fg-mute)">暂无市场重点</span></li>';
+
+  // 深度分析:可折叠 details,默认展开第一项
+  if (details.length) {
+    briefsAnalysis.innerHTML = details.slice(0, 3).map((d, i) => `
+      <details${i === 0 ? " open" : ""}>
+        <summary>
+          <span>${escapeHtml(d.title || "分析")}</span>
+          <span class="analysis__no mono">№ 0${i + 1}</span>
+        </summary>
+        <div class="analysis__body">${escapeHtml(d.content || "")}</div>
+      </details>
+    `).join("");
+  } else {
+    briefsAnalysis.innerHTML = '<p style="color:var(--fg-mute);font-size:0.82rem;padding:0.5rem 0">深度分析等每日 8:00 定时任务生成</p>';
+  }
 }
 
 // ---------- News River (瀑布流) ----------

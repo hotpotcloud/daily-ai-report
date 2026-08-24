@@ -620,6 +620,62 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
   counter-reset: brief;
 }
 
+/* ---------- 深度分析 (collapsible details) ---------- */
+.briefs__col--analysis { padding-top: 0.5rem; }
+.briefs__col--analysis .briefs__num { color: var(--ai-tint); }
+.briefs__analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.briefs__analysis details {
+  border-top: 1px solid var(--border);
+  padding: 0;
+}
+.briefs__analysis details:first-child { border-top: none; }
+.briefs__analysis summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.6rem 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: "IBM Plex Serif", "Noto Serif SC", serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: 0.01em;
+  transition: color 0.15s;
+}
+.briefs__analysis summary::-webkit-details-marker { display: none; }
+.briefs__analysis summary::before {
+  content: "▸";
+  color: var(--ai-tint);
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+  display: inline-block;
+  width: 0.9rem;
+  text-align: center;
+}
+.briefs__analysis details[open] summary::before { transform: rotate(90deg); }
+.briefs__analysis summary:hover { color: var(--accent); }
+.briefs__analysis summary .analysis__no {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  color: var(--fg-mute);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-left: auto;
+}
+.briefs__analysis .analysis__body {
+  padding: 0 0 0.85rem 1.4rem;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--fg-dim);
+  text-align: justify;
+  font-family: "Noto Serif SC", "IBM Plex Serif", serif;
+}
+
 /* ---------- Footer ---------- */
 .footer {
   margin-top: 2rem;
