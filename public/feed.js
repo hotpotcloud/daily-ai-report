@@ -1,5 +1,5 @@
-// Signal Board · Editorial
-// 实时新闻(瀑布流) + AI 整理日报(大字) + AI 浮窗
+// Signal Board · daily-ai-briefing
+// 1-col list + sidebar widgets · magazine style
 
 const el = (id) => document.getElementById(id);
 
@@ -37,7 +37,6 @@ const chatForm = el("chat-form");
 const chatInput = el("chat-input");
 const chatSend = el("chat-send");
 const chatStream = el("chat-stream");
-const chatModel = el("chat-model");
 const suggestList = el("suggest-list");
 
 const AI_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>`;
@@ -47,15 +46,12 @@ let conversationHistory = [];
 let newsData = [];
 let currentFilter = "all";
 
-// ---------- MOVERS · 从新闻标题里正则抽个股涨跌 ----------
+// ---------- MOVERS · 从新闻标题正则抽取 ----------
 
-// 名称:2-6 个中英文字,内部不能含"涨/跌"等关键字
 const NAME_RE = "([\\u4e00-\\u9fa5A-Za-z·\\-]{2,6})";
 const UP_KW = "(?:涨(?:超|逾|近|约|超)?|涨幅|升|走高|上涨|高开(?:逾|超)?|盘中(?:升|涨)|开盘涨|早盘涨|快速涨|拉升|翻红|涨至)";
 const DN_KW = "(?:跌(?:超|逾|近|约|超)?|跌幅|走低|下跌|低开(?:逾|超)?|盘中跌|开盘跌|早盘跌|快速跌|下挫|下探|翻绿|跌至)";
 const PCT_RE = "([\\d]+(?:\\.[\\d]+)?)\\s*%";
-
-// 不能作为名称结尾的修饰词(避免把"半年纯利同比"当名称)
 const NAME_BAD_SUFFIX = /(?:同比|环比|上半年|下半年|前三季|本季|全年|年度|季度|今年|去年|今日|今天|盘中|午盘|收盘|开盘|早盘|本月|上月|预期|预计|预估|累计|增至|报|营收|净利|溢利|业绩|股东|应占|盈利|增长|下滑|减少|增加)$/;
 
 function extractMovers(items) {
@@ -79,9 +75,8 @@ function extractMovers(items) {
     }
   };
   for (const it of items || []) {
-    const title = it.title || "";
-    collect(title, UP_KW, +1);
-    collect(title, DN_KW, -1);
+    collect(it.title || "", UP_KW, +1);
+    collect(it.title || "", DN_KW, -1);
   }
   up.sort((a, b) => b.pct - a.pct);
   down.sort((a, b) => b.pct - a.pct);
@@ -153,32 +148,21 @@ function formatDateCN(d) {
   return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
 }
 
-// ---------- Hero (大字摘要 + 情绪) ----------
+// ---------- Hero (大字摘要) ----------
 
 function renderHero(data) {
   if (!data || !data.digestDate) {
-    heroQuote.innerHTML = "<p>今日 AI 整理日报还没生成 · 等每天 8:00 定时任务跑(UTC 0:00 / 北京 8:00)。</p>";
+    heroQuote.innerHTML = "<p>今日 AI 整理日报还没生成 · 等每天 8:00 定时任务跑。</p>";
     heroDate.textContent = "—";
-    heroMarketSent.textContent = "—";
-    heroAiSent.textContent = "—";
-    heroMarketTrend.textContent = "—";
-    heroAiTrend.textContent = "—";
     return;
   }
   heroDate.textContent = data.digestDate;
   const summary = data.summary || "(无摘要)";
   heroQuote.innerHTML = `<p>${escapeHtml(summary)}</p>`;
-  heroMarketSent.textContent = data.marketSentiment || "—";
-  heroAiSent.textContent = data.aiSentiment || "—";
-  const marketMetrics = (data.metrics || []).find(m => m.label === "市场风险偏好");
-  const aiMetrics = (data.metrics || []).find(m => m.label === "AI 热度");
-  heroMarketTrend.textContent = marketMetrics ? `${marketMetrics.value} / 100 · ${marketMetrics.trend || ""}` : "—";
-  heroAiTrend.textContent = aiMetrics ? `${aiMetrics.value} / 100 · ${aiMetrics.trend || ""}` : "—";
 }
 
-// ---------- Ticker Bar (4 metric with SVG icons) ----------
+// ---------- Indicators (1-col 竖排 4 张) ----------
 
-// 与 digest.metrics[].label 一一对应的 SVG 图标
 const METRIC_ICONS = {
   "市场风险偏好": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><polyline points="14 7 20 7 20 13"/></svg>',
   "AI 热度":     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
@@ -200,21 +184,99 @@ function renderTicker(data) {
     const label = m.label || "";
     const icon = METRIC_ICONS[label] || DEFAULT_ICON;
     return `
-    <div class="metric" role="listitem">
-      <span class="metric__no">№ 0${i + 1}</span>
+    <li class="metric" role="listitem">
+      <span class="metric__icon">${icon}</span>
       <div class="metric__head">
-        <span class="metric__icon">${icon}</span>
         <span class="metric__label">${escapeHtml(label)}</span>
+        <span class="metric__trend ${(m.trend || '').match(/回落|承压|分化|走弱/) ? 'is-down' : ''}">${escapeHtml(m.trend || "—")}</span>
       </div>
       <div class="metric__value">${v}</div>
-      <div class="metric__trend">${escapeHtml(m.trend || "—")}</div>
       <div class="metric__bar"><span class="metric__bar-fill" style="width:${v}%"></span></div>
-    </div>
+    </li>
   `;
   }).join("");
 }
 
-// ---------- Briefs (AI / Market 双列) ----------
+// ---------- News (1-col list + featured) ----------
+
+function renderNews(items) {
+  const filtered = currentFilter === "all"
+    ? items
+    : items.filter(it => it.category === currentFilter);
+
+  if (!filtered.length) {
+    newsRiver.innerHTML = "";
+    newsFeatured.hidden = true;
+    newsFeatured.innerHTML = "";
+    newsEmpty.hidden = false;
+    newsCount.textContent = "0 条";
+    return;
+  }
+  newsEmpty.hidden = true;
+
+  // 焦点卡片:第一条有图的(优先)或第一条
+  const featured = filtered.find(it => it.image) || filtered[0];
+  const rest = filtered.filter(it => it !== featured);
+  renderFeatured(featured);
+
+  // 1-col 列表
+  newsRiver.innerHTML = rest.map((it, idx) => {
+    const cat = it.category || "tech";
+    const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
+    const no = String(idx + 1).padStart(3, "0");
+    const thumb = it.image
+      ? `<div class="news-item__thumb"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('news-item__thumb--empty');this.remove();" /></div>`
+      : `<div class="news-item__thumb news-item__thumb--empty"><span>${catLabel}</span></div>`;
+    return `<a class="news-item" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" role="listitem" data-cat="${cat}">
+      ${thumb}
+      <div class="news-item__body">
+        <div class="news-item__kicker">
+          <span class="cat cat--${cat}">${catLabel}</span>
+          <span class="news-item__source">${escapeHtml(it.source || "")}</span>
+        </div>
+        <h3 class="news-item__title">${escapeHtml(it.title || "")}</h3>
+        ${it.description ? `<p class="news-item__desc">${escapeHtml(it.description)}</p>` : ""}
+        <div class="news-item__meta">
+          <span>${escapeHtml(timeAgo(it.publishedAt) || "—")}</span>
+          <span class="news-item__no">№ ${no}</span>
+        </div>
+      </div>
+    </a>`;
+  }).join("");
+
+  newsCount.textContent = filtered.length + " 条";
+}
+
+function renderFeatured(it) {
+  if (!it) {
+    newsFeatured.hidden = true;
+    newsFeatured.innerHTML = "";
+    return;
+  }
+  newsFeatured.hidden = false;
+  const cat = it.category || "tech";
+  const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
+  const img = it.image
+    ? `<div class="featured__image"><img src="${escapeHtml(it.image)}" alt="" loading="eager" onerror="this.parentNode.classList.add('featured__image--empty');this.remove();" /></div>`
+    : `<div class="featured__image featured__image--empty"><span class="featured__image-mark">${catLabel}</span></div>`;
+  newsFeatured.innerHTML = `<a class="featured" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-cat="${cat}">
+    ${img}
+    <div class="featured__body">
+      <div class="featured__kicker">
+        <span class="cat cat--${cat}">${catLabel}</span>
+        <span class="featured__source mono">${escapeHtml(it.source || "")}</span>
+        <span class="featured__no mono">№ TOP</span>
+      </div>
+      <h3 class="featured__title">${escapeHtml(it.title || "")}</h3>
+      ${it.description ? `<p class="featured__desc">${escapeHtml(it.description)}</p>` : ""}
+      <div class="featured__meta mono">
+        ${it.publishedAt ? escapeHtml(timeAgo(it.publishedAt)) : "—"}
+      </div>
+    </div>
+  </a>`;
+}
+
+// ---------- Briefs + Analysis ----------
 
 function renderBriefs(data) {
   briefsAiList.innerHTML = "";
@@ -235,10 +297,10 @@ function renderBriefs(data) {
     ? market.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
     : '<li><span style="color:var(--fg-mute)">暂无市场重点</span></li>';
 
-  // 深度分析:可折叠 details,默认全部展开(右侧本来短,展开补高度)
+  // 深度分析:可折叠
   if (details.length) {
     briefsAnalysis.innerHTML = details.slice(0, 3).map((d, i) => `
-      <details open>
+      <details${i === 0 ? " open" : ""}>
         <summary>
           <span>${escapeHtml(d.title || "分析")}</span>
           <span class="analysis__no mono">№ 0${i + 1}</span>
@@ -249,75 +311,6 @@ function renderBriefs(data) {
   } else {
     briefsAnalysis.innerHTML = '<p style="color:var(--fg-mute);font-size:0.82rem;padding:0.5rem 0">深度分析等每日 8:00 定时任务生成</p>';
   }
-}
-
-// ---------- News River (瀑布流) ----------
-
-function renderNews(items) {
-  const filtered = currentFilter === "all"
-    ? items
-    : items.filter(it => it.category === currentFilter);
-
-  if (!filtered.length) {
-    newsRiver.innerHTML = "";
-    newsFeatured.innerHTML = "";
-    newsEmpty.hidden = false;
-    newsCount.textContent = "0 条";
-    return;
-  }
-  newsEmpty.hidden = true;
-
-  // 1) 焦点卡片:第一条有图的(优先)或第一条
-  const featured = filtered.find(it => it.image) || filtered[0];
-  const rest = filtered.filter(it => it !== featured);
-  newsFeatured.innerHTML = renderFeatured(featured);
-
-  // 2) 列表:缩略图卡(2-col 网格)
-  newsRiver.innerHTML = rest.map((it, idx) => {
-    const cat = it.category || "tech";
-    const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
-    const no = String(idx + 1).padStart(3, "0");
-    const thumb = it.image
-      ? `<div class="news-card__thumb"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('news-card__thumb--empty');this.remove();" /></div>`
-      : `<div class="news-card__thumb news-card__thumb--empty"><span class="news-card__thumb-mark">${catLabel[0]}</span></div>`;
-    return `<a class="news-card" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" role="listitem" data-cat="${cat}">
-      ${thumb}
-      <div class="news-card__body">
-        <div class="news-card__kicker">
-          <span class="cat cat--${cat}">${catLabel}</span>
-          <span class="news-card__source">${escapeHtml(it.source || "")}</span>
-        </div>
-        <h3 class="news-card__title">${escapeHtml(it.title || "")}</h3>
-        <div class="news-card__time mono">${escapeHtml(timeAgo(it.publishedAt) || "—")}</div>
-      </div>
-    </a>`;
-  }).join("");
-
-  newsCount.textContent = filtered.length + " 条";
-}
-
-function renderFeatured(it) {
-  if (!it) return "";
-  const cat = it.category || "tech";
-  const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
-  const img = it.image
-    ? `<div class="featured__image"><img src="${escapeHtml(it.image)}" alt="" loading="eager" onerror="this.parentNode.classList.add('featured__image--empty');this.remove();" /></div>`
-    : `<div class="featured__image featured__image--empty"><span class="featured__image-mark">${catLabel}</span></div>`;
-  return `<a class="featured" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-cat="${cat}">
-    ${img}
-    <div class="featured__body">
-      <div class="featured__kicker">
-        <span class="cat cat--${cat}">${catLabel}</span>
-        <span class="featured__source mono">${escapeHtml(it.source || "")}</span>
-        <span class="featured__no mono">№ TOP</span>
-      </div>
-      <h3 class="featured__title">${escapeHtml(it.title || "")}</h3>
-      ${it.description ? `<p class="featured__desc">${escapeHtml(it.description)}</p>` : ""}
-      <div class="featured__meta mono">
-        ${it.publishedAt ? escapeHtml(timeAgo(it.publishedAt)) : "—"}
-      </div>
-    </div>
-  </a>`;
 }
 
 // ---------- 数据加载 ----------
@@ -369,9 +362,9 @@ async function loadDigest() {
     renderBriefs(data);
     if (data._generatedAt) {
       const dt = new Date(data._generatedAt);
-      mastheadDate.textContent = formatDateCN(dt) + " · M3";
+      mastheadDate.textContent = formatDateCN(dt);
     } else if (data.digestDate) {
-      mastheadDate.textContent = data.digestDate + " · M3";
+      mastheadDate.textContent = data.digestDate;
     }
   } catch (e) {
     renderHero(null);
@@ -387,7 +380,6 @@ async function loadHealth() {
     const data = await res.json();
     if (data.ok) {
       setStatus(null, data.has_api_key ? "就绪" : "缺 API key");
-      chatModel.textContent = data.model || "—";
     } else {
       setStatus("error", "异常");
     }
