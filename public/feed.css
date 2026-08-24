@@ -382,50 +382,48 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 .movers__col--up .movers__change { color: var(--up); }
 .movers__col--down .movers__change { color: var(--down); }
 
-/* ---------- TICKER BAR · 4 metric 横排 ---------- */
-.ticker-bar {
-  padding: 1.6rem 0 1.8rem;
-  border-bottom: 1px solid var(--border-strong);
+/* ---------- INDICATORS · 4 metric 侧栏 2x2 网格 ---------- */
+.indicators {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
 }
-.ticker-bar__head {
+.indicators__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  padding: 0.7rem 0.9rem 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
-.ticker-bar__hint {
-  font-size: 0.7rem;
+.indicators__hint {
+  font-size: 0.6rem;
   color: var(--fg-mute);
-  letter-spacing: 0.08em;
-  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.ticker-bar__grid {
+.indicators__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 1px;
   background: var(--border);
-  border: 1px solid var(--border-strong);
-}
-@media (min-width: 720px) {
-  .ticker-bar__grid { grid-template-columns: repeat(4, 1fr); }
 }
 .metric {
   background: var(--bg-elev);
-  padding: 1.05rem 1.05rem 1.15rem;
+  padding: 0.7rem 0.8rem 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
   position: relative;
+  min-height: 5.5rem;
 }
 .metric__head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.05rem;
 }
 .metric__icon {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.15rem;
+  height: 1.15rem;
   display: grid;
   place-items: center;
   color: var(--accent);
@@ -433,48 +431,51 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
   flex-shrink: 0;
 }
 .metric__icon svg {
-  width: 1rem;
-  height: 1rem;
+  width: 0.85rem;
+  height: 0.85rem;
   stroke: currentColor;
 }
 .metric__no {
   position: absolute;
-  top: 0.55rem;
-  right: 0.65rem;
+  top: 0.4rem;
+  right: 0.5rem;
   font-family: "JetBrains Mono", monospace;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: var(--fg-mute);
   letter-spacing: 0.1em;
 }
 .metric__label {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   color: var(--fg-dim);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .metric__value {
   font-family: "IBM Plex Serif", "Noto Serif SC", serif;
-  font-size: clamp(1.9rem, 3.2vw, 2.5rem);
+  font-size: clamp(1.4rem, 1.9vw, 1.7rem);
   font-weight: 700;
   line-height: 1;
   color: var(--fg);
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: 0.3rem;
   letter-spacing: -0.01em;
   font-feature-settings: "tnum" 1;
 }
 .metric__value::after {
   content: "/100";
   font-family: "JetBrains Mono", monospace;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: var(--fg-mute);
   font-weight: 400;
   letter-spacing: 0;
 }
 .metric__trend {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--up);
   font-family: "JetBrains Mono", monospace;
   font-weight: 500;
@@ -482,11 +483,11 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 }
 .metric__trend.is-down { color: var(--down); }
 .metric__bar {
-  height: 4px;
+  height: 3px;
   background: var(--border);
   position: relative;
   overflow: hidden;
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
 }
 .metric__bar-fill {
   display: block;
@@ -496,23 +497,72 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ---------- MAIN · 2 列(左 news / 右 briefs)---------- */
-.main {
+/* ---------- MAIN-GRID · 3 栏(左 sidebar | news | 右 sidebar)---------- */
+.main-grid {
   display: grid;
   grid-template-columns: 1fr;
   padding: 1.6rem 0 0;
-  gap: 2rem;
+  gap: 1.6rem;
 }
-@media (min-width: 980px) {
-  .main { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 0; }
+@media (min-width: 1080px) {
+  .main-grid { grid-template-columns: 220px minmax(0, 1fr) 320px; gap: 1.5rem; }
 }
 
-/* ---------- NEWS · 左主区 ---------- */
-.news {
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
   min-width: 0;
 }
-@media (min-width: 980px) {
-  .news { padding-right: 2rem; border-right: 1px solid var(--border); }
+
+/* ---------- AD · mock 广告位 ---------- */
+.ad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1.4rem 1rem;
+  border: 1px dashed var(--border-strong);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      var(--bg-tint) 0,
+      var(--bg-tint) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
+    var(--bg-elev);
+  color: var(--fg-mute);
+  font-family: "JetBrains Mono", monospace;
+  text-align: center;
+  user-select: none;
+}
+.ad__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--fg-dim);
+  background: var(--border);
+  padding: 0.1rem 0.5rem;
+}
+.ad__size {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--fg-mute);
+}
+.ad__hint {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: var(--fg-mute);
+  font-family: "Noto Serif SC", serif;
+  font-style: italic;
+}
+.ad--banner { padding: 0.8rem 1rem; }
+
+/* ---------- NEWS · 中间主区 ---------- */
+.news {
+  min-width: 0;
 }
 .news__head {
   display: flex;
@@ -779,28 +829,32 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 }
 .news__empty-sub { font-size: 0.8rem; margin-top: 0.4rem; }
 
-/* ---------- BRIEFS · 右侧栏 ---------- */
+/* ---------- BRIEFS · 右栏(3 段竖排)---------- */
 .briefs {
   min-width: 0;
-}
-@media (min-width: 980px) {
-  .briefs { padding-left: 2rem; }
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  padding: 0.5rem 0.9rem 0.6rem;
 }
 .briefs__col {
-  margin-bottom: 1.5rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
 }
-.briefs__col:last-child { margin-bottom: 0; }
+.briefs__col:last-child {
+  padding-bottom: 0.2rem;
+  border-bottom: none;
+}
 .briefs__head {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 0.7rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-strong);
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
 }
 .briefs__num {
   font-family: "IBM Plex Serif", "Noto Serif SC", serif;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
@@ -810,7 +864,7 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 .briefs__title {
   margin: 0;
   font-family: "IBM Plex Serif", "Noto Serif SC", serif;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -818,11 +872,11 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 .briefs__list { display: flex; flex-direction: column; }
 .briefs__list li {
   display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: 0.6rem;
-  padding: 0.7rem 0;
+  grid-template-columns: 2.2rem 1fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   border-bottom: 1px dotted var(--border);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   line-height: 1.55;
   color: var(--fg);
   align-items: start;
@@ -832,7 +886,7 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 .briefs__list li::before {
   content: "№ " counter(brief, decimal-leading-zero);
   font-family: "JetBrains Mono", monospace;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   color: var(--accent);
   font-weight: 600;
   font-feature-settings: "tnum" 1;
@@ -1128,12 +1182,14 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
 /* ============================================================
  * 移动端
  * ============================================================ */
+@media (max-width: 1079px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .sidebar { order: initial; }
+  .indicators__grid { grid-template-columns: repeat(4, 1fr); }
+}
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; }
   .hero__meter { border-left: none; border-top: 1px solid var(--border); padding: 1.2rem 0 0; }
-  .main { grid-template-columns: 1fr; }
-  .news { padding-right: 0; border-right: none; }
-  .briefs { padding-left: 0; }
   .masthead__sub { display: none; }
   .masthead__date { display: none; }
   .news__filters { flex-wrap: wrap; }

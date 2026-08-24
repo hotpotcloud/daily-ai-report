@@ -23,7 +23,7 @@
           <span class="masthead__mark" aria-hidden="true"></span>
           <div class="masthead__title">
             <span class="masthead__name">Signal Board</span>
-            <span class="masthead__sub">— 每日 AI 与市场要闻 · 由 M3 聚合</span>
+            <span class="masthead__sub">— 每日 AI 与市场要闻</span>
           </div>
         </div>
         <div class="masthead__right">
@@ -53,9 +53,6 @@
           <blockquote class="hero__quote" id="hero-quote">
             <p>正在加载今日 AI 整理摘要……</p>
           </blockquote>
-          <p class="hero__byline mono">
-            编辑视角 · 由 MiniMax-M3 实时聚合 · 8:00 AM UTC 自动更新
-          </p>
         </div>
 
         <!-- 右:大数字情绪 + 涨跌幅榜 -->
@@ -100,17 +97,32 @@
         </aside>
       </section>
 
-      <!-- =============== 指标带 · 4 metric 横排 =============== -->
-      <section class="ticker-bar" id="ticker-bar" aria-label="今日四大指标">
-        <div class="ticker-bar__head">
-          <span class="kicker__label">№ 03 / INDICATORS</span>
-          <span class="ticker-bar__hint mono" id="ticker-bar-hint">4 项指标</span>
-        </div>
-        <div class="ticker-bar__grid" id="ticker-bar-grid"></div>
-      </section>
+      <!-- =============== 主区 · 3 栏(左 sidebar | 新闻 | 右 sidebar)=============== -->
+      <div class="main-grid">
+        <!-- 左栏:AD + 指标 + AD -->
+        <aside class="sidebar sidebar--left" aria-label="左侧栏">
+          <div class="ad ad--square">
+            <span class="ad__label">AD</span>
+            <span class="ad__size">300 × 250</span>
+            <span class="ad__hint">广告位 · 待接入</span>
+          </div>
 
-      <!-- =============== 主区 · 实时新闻(左 1.7fr) + 今日重点(右 1fr)=============== -->
-      <div class="main">
+          <section class="indicators" id="indicators" aria-label="今日四大指标">
+            <div class="indicators__head">
+              <span class="kicker__label">№ 03 / INDICATORS</span>
+              <span class="indicators__hint mono" id="ticker-bar-hint">4 项 · 100 制</span>
+            </div>
+            <div class="indicators__grid" id="ticker-bar-grid"></div>
+          </section>
+
+          <div class="ad ad--square">
+            <span class="ad__label">AD</span>
+            <span class="ad__size">300 × 250</span>
+            <span class="ad__hint">广告位 · 待接入</span>
+          </div>
+        </aside>
+
+        <!-- 中栏:实时新闻 -->
         <section class="news" id="news" aria-labelledby="news-title">
           <header class="news__head">
             <div class="news__head-left">
@@ -138,7 +150,14 @@
           </div>
         </section>
 
-        <section class="briefs" id="briefs" aria-label="今日重点">
+        <!-- 右栏:AD + 重点 + 深度分析 + AD -->
+        <aside class="sidebar sidebar--right" aria-label="右侧栏">
+          <div class="ad ad--banner">
+            <span class="ad__label">AD</span>
+            <span class="ad__size">300 × 100</span>
+          </div>
+
+          <section class="briefs" id="briefs" aria-label="今日重点">
           <div class="briefs__col">
             <header class="briefs__head">
               <span class="briefs__num mono">A</span>
@@ -164,6 +183,13 @@
             <div class="briefs__analysis" id="briefs-analysis"></div>
           </div>
         </section>
+
+          <div class="ad ad--square">
+            <span class="ad__label">AD</span>
+            <span class="ad__size">300 × 250</span>
+            <span class="ad__hint">广告位 · 待接入</span>
+          </div>
+        </aside>
       </div>
     </main>
 
