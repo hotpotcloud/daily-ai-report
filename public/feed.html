@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#fafaf7" />
+    <meta name="theme-color" content="#ffffff" />
     <title>Signal Board · daily-ai-briefing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,147 +16,254 @@
   <body>
     <a class="sr-skip" href="#main">跳到内容</a>
 
-    <!-- =============== MASTHEAD · 极简头条 =============== -->
-    <header class="masthead" role="banner">
-      <div class="masthead__row">
-        <div class="masthead__brand">
-          <span class="masthead__name">Signal Board</span>
-          <span class="masthead__sub">每日 AI 与市场要闻</span>
-        </div>
-        <div class="masthead__right">
-          <span class="masthead__date mono" id="masthead-date">—</span>
-          <span class="masthead__status" id="status-pill">
-            <span class="masthead__dot"></span>
-            <span id="status-text" class="mono">就绪</span>
+    <div class="app">
+
+      <!-- =============== LEFT SIDENAV =============== -->
+      <aside class="sidenav" aria-label="主题导航">
+        <a class="sidenav__brand" href="#">
+          <span class="sidenav__logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
           </span>
-          <button class="masthead__btn" id="refresh-btn" type="button" aria-label="刷新实时新闻">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a9 9 0 1 1-3.13-6.83"/><path d="M21 4v5h-5"/></svg>
-            <span>REFRESH</span>
+          <span>
+            <span class="sidenav__name">Signal Board</span>
+            <span class="sidenav__sub">信号地图</span>
+          </span>
+        </a>
+
+        <nav class="sidenav__menu" aria-label="主菜单">
+          <a class="sidenav__item is-active" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+            <span>今日总览</span>
+          </a>
+          <a class="sidenav__item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>
+            <span>事件地图</span>
+          </a>
+          <a class="sidenav__item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>我的关注</span>
+          </a>
+          <a class="sidenav__item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>风险扫描</span>
+          </a>
+          <a class="sidenav__item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M4 4v12a4 4 0 0 0 4 4"/></svg>
+            <span>报告库</span>
+          </a>
+        </nav>
+
+        <div class="sidenav__group">
+          <h3 class="sidenav__group-title">我的关注</h3>
+          <ul class="sidenav__topics">
+            <li data-topic="ai"><span class="dot dot--indigo"></span><span>AI 芯片</span><span class="count">—</span></li>
+            <li data-topic="cloud"><span class="dot dot--teal"></span><span>云与数据中心</span><span class="count">—</span></li>
+            <li data-topic="mem"><span class="dot dot--amber"></span><span>存储与半导体</span><span class="count">—</span></li>
+            <li data-topic="energy"><span class="dot dot--emerald"></span><span>新能源与绿电</span><span class="count">—</span></li>
+            <li data-topic="cap"><span class="dot dot--rose"></span><span>资本市场</span><span class="count">—</span></li>
+          </ul>
+        </div>
+
+        <div class="sidenav__group">
+          <h3 class="sidenav__group-title">自定义主题</h3>
+          <button class="sidenav__add" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>新建主题</span>
           </button>
         </div>
-      </div>
-    </header>
 
-    <main id="main">
+        <footer class="sidenav__foot">
+          <p class="mono">数据更新 <span id="sidenav-update">—</span></p>
+          <p class="mono" id="sidenav-date">2026.08.24 星期一</p>
+        </footer>
+      </aside>
 
-      <!-- =============== HERO · 1-col 大字摘要 =============== -->
-      <section class="hero" aria-label="今日头条">
-        <p class="hero__kicker mono">
-          <span>№ 01</span>
-          <span>·</span>
-          <span>TODAY'S BRIEFING</span>
-          <span class="hero__date" id="hero-date">—</span>
-        </p>
-        <blockquote class="hero__quote" id="hero-quote">
-          <p>正在加载今日 AI 整理摘要……</p>
-        </blockquote>
-      </section>
+      <!-- =============== MAIN COLUMN =============== -->
+      <main id="main" class="main-col">
 
-      <!-- =============== INDICATORS · 1-col 竖排 4 张 =============== -->
-      <section class="indicators" id="indicators" aria-label="今日四大指标">
-        <header class="indicators__head">
-          <span class="kicker__label">№ 02 / INDICATORS</span>
-          <span class="indicators__hint mono" id="ticker-bar-hint">4 项 · 100 制</span>
+        <!-- TOPNAV · 顶部主导航(sticky) -->
+        <header class="topnav" role="banner">
+          <nav class="topnav__menu" aria-label="主导航">
+            <a class="topnav__item is-active" href="#">AI</a>
+            <a class="topnav__item" href="#">科技</a>
+            <a class="topnav__item" href="#">市场</a>
+            <a class="topnav__item" href="#">公司</a>
+          </nav>
+          <div class="topnav__search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" placeholder="搜索事件、公司、主题、报告" aria-label="搜索" />
+          </div>
+          <button class="topnav__btn topnav__btn--cta" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5" fill="currentColor"/></svg>
+            <span>订阅今日简报</span>
+          </button>
+          <button class="topnav__btn" type="button" aria-label="收藏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>收藏</span>
+          </button>
         </header>
-        <ol class="indicators__list" id="ticker-bar-grid"></ol>
-      </section>
 
-      <!-- =============== MAIN · 2 栏(左新闻 1-col | 右 sidebar 1-col)=============== -->
-      <div class="main-grid">
-        <section class="news" id="news" aria-labelledby="news-title">
-          <header class="news__head">
-            <h2 class="news__title" id="news-title">
-              <span class="kicker__label">№ 03 / LIVE NEWS</span>
-            </h2>
-            <p class="news__sub mono">
-              <span id="news-count">— 条</span>
-              <span class="news__sep">·</span>
-              <span id="fetch-pill">实时拉取 · 零缓存</span>
-              <span class="news__sep">·</span>
-              <span id="last-fetch">—</span>
-            </p>
-            <div class="news__filters" id="news-filters" role="tablist">
-              <button class="filter is-active" data-cat="all" type="button">全部</button>
-              <button class="filter" data-cat="ai" type="button">AI</button>
-              <button class="filter" data-cat="tech" type="button">科技</button>
-              <button class="filter" data-cat="market" type="button">市场</button>
+        <!-- 第一行 · 事件关系图 + AI 总结 -->
+        <div class="upper-row">
+          <section class="event-map" aria-label="今日事件关系">
+            <header class="section__head">
+              <div>
+                <h2 class="section__title">今日事件关系</h2>
+                <p class="section__sub mono"><span id="event-date">—</span> · <span id="event-updated">节点更新于 —</span> · 因果链由 AI 实时聚合</p>
+              </div>
+              <div class="event-map__actions">
+                <button class="chip chip--ghost" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+                  时间线视图
+                </button>
+                <button class="chip chip--ghost" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.13-6.83"/><path d="M21 4v5h-5"/></svg>
+                  重新计算因果
+                </button>
+              </div>
+            </header>
+
+            <div class="event-map__canvas" id="event-map-canvas">
+              <div class="event-map__loading">
+                <div class="dot-pulse"></div>
+                <p>正在聚合今日事件图谱…</p>
+              </div>
             </div>
-          </header>
+          </section>
 
-          <article class="featured" id="news-featured" hidden></article>
+          <!-- AI 总结 side -->
+          <aside class="side-card side-card--impact" aria-label="AI 总结">
+            <header class="side-card__head">
+              <div class="side-card__title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.39 6.95H22l-5.81 4.22L18.18 22 12 17.27 5.82 22l2-7.83L2 8.95h7.61z"/></svg>
+                <h3>AI 总结</h3>
+              </div>
+              <span class="trust">可信度 <strong id="impact-trust">—</strong></span>
+            </header>
+            <p class="side-card__lede" id="impact-headline">正在聚合今日事件…</p>
+            <div class="side-card__body" id="impact-body">
+              <p>暂无内容,稍后再来看看。</p>
+            </div>
+            <button class="btn btn--blue" type="button" id="btn-impact-chain">
+              展开影响链
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+          </aside>
+        </div>
 
-          <ol class="news__list" id="news-river" role="list" aria-label="新闻流"></ol>
-          <div class="news__empty" id="news-empty" hidden>
-            <p>暂无新闻</p>
-            <p class="news__empty-sub">刷新试试,或检查数据源</p>
+        <!-- 第二行 · 正在发生 + 与你关注相关 -->
+        <div class="lower-row">
+          <section class="timeline" aria-label="正在发生">
+            <header class="section__head">
+              <h2 class="section__title">正在发生</h2>
+              <a class="section__more" href="#">查看完整时间线 →</a>
+            </header>
+            <ol class="timeline__list" id="timeline-list">
+              <li class="timeline__item"><span class="timeline__time mono">…</span><div class="timeline__body"><p class="timeline__title">加载中</p></div></li>
+            </ol>
+          </section>
+
+          <aside class="side-card side-card--related" aria-label="与你关注相关">
+            <header class="side-card__head">
+              <div class="side-card__title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                <h3>与你关注相关</h3>
+              </div>
+              <span class="trust">实时</span>
+            </header>
+            <ol class="related__list" id="related-list">
+              <li class="related__item related__item--empty">暂无命中,稍后再来看看</li>
+            </ol>
+          </aside>
+        </div>
+      </main>
+
+      <!-- =============== RIGHT SIDEBAR =============== -->
+      <aside class="rightcol" aria-label="情报面板">
+
+        <!-- 影响雷达 + 风险雷达 双表 -->
+        <section class="panel panel--radar" aria-label="双雷达">
+          <div class="radar-block">
+            <header class="radar-block__head">
+              <h3>影响雷达 <span class="trust">实时聚合</span></h3>
+            </header>
+            <div class="radar-table" id="side-affects">
+              <div class="radar-row radar-row--head">
+                <span>领域</span>
+                <span class="num">热度</span>
+                <span class="num">方向</span>
+                <span class="num">置信度</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="radar-block">
+            <header class="radar-block__head">
+              <h3>风险雷达 <span class="trust">实时聚合</span></h3>
+            </header>
+            <div class="radar-table" id="side-risks">
+              <div class="radar-row radar-row--head">
+                <span>领域</span>
+                <span class="num">热度</span>
+                <span class="num">方向</span>
+                <span class="num">置信度</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        <aside class="sidebar" aria-label="右侧栏">
-          <div class="ad ad--square">
-            <span class="ad__label">AD</span>
-            <span class="ad__size">300 × 250</span>
-            <span class="ad__hint">广告位 · 待接入</span>
-          </div>
-
-          <section class="widget widget--movers">
-            <header class="widget__head">
-              <h3 class="widget__title">▲ 涨幅榜</h3>
-              <span class="widget__hint mono">今日</span>
-            </header>
-            <ol class="movers" id="movers-up">
-              <li class="movers__empty">暂无数据</li>
-            </ol>
-          </section>
-
-          <section class="widget widget--movers">
-            <header class="widget__head">
-              <h3 class="widget__title widget__title--down">▼ 跌幅榜</h3>
-              <span class="widget__hint mono">今日</span>
-            </header>
-            <ol class="movers" id="movers-down">
-              <li class="movers__empty">暂无数据</li>
-            </ol>
-          </section>
-
-          <section class="widget" id="briefs" aria-label="今日重点">
-            <header class="widget__head">
-              <h3 class="widget__title">A · AI 重点</h3>
-              <span class="widget__hint mono">今日</span>
-            </header>
-            <ol class="briefs" id="briefs-ai-list"></ol>
-          </section>
-
-          <section class="widget widget--market">
-            <header class="widget__head">
-              <h3 class="widget__title">M · 市场重点</h3>
-              <span class="widget__hint mono">今日</span>
-            </header>
-            <ol class="briefs" id="briefs-market-list"></ol>
-          </section>
-
-          <section class="widget widget--analysis">
-            <header class="widget__head">
-              <h3 class="widget__title">D · 深度分析</h3>
-              <span class="widget__hint mono">折叠</span>
-            </header>
-            <div class="analysis" id="briefs-analysis"></div>
-          </section>
-
-          <div class="ad ad--square">
-            <span class="ad__label">AD</span>
-            <span class="ad__size">300 × 250</span>
-            <span class="ad__hint">广告位 · 待接入</span>
-          </div>
-        </aside>
-      </div>
-    </main>
-
-    <footer class="footer">
-      <span class="mono">© 2026 · Signal Board · daily-ai-briefing</span>
-      <span class="footer__sep">·</span>
-      <span class="mono">No.{003} / 北京时间</span>
-    </footer>
+        <!-- 市场速览 -->
+        <section class="panel panel--market" aria-label="市场速览">
+          <header class="panel__head">
+            <h3>市场速览</h3>
+            <time class="panel__hint mono" id="market-time">—</time>
+          </header>
+          <ul class="market-snap" id="market-snap">
+            <li class="market-snap__row">
+              <span class="market-snap__name">上证指数</span>
+              <span class="market-snap__val">3,412.21</span>
+              <span class="market-snap__chg up">+0.65%</span>
+              <svg class="market-snap__spark" viewBox="0 0 60 20" aria-hidden="true">
+                <polyline fill="none" stroke="#10b981" stroke-width="1.4" points="0,14 6,12 12,15 18,11 24,13 30,9 36,11 42,7 48,9 54,5 60,4" />
+              </svg>
+            </li>
+            <li class="market-snap__row">
+              <span class="market-snap__name">深证成指</span>
+              <span class="market-snap__val">10,891.12</span>
+              <span class="market-snap__chg up">+0.97%</span>
+              <svg class="market-snap__spark" viewBox="0 0 60 20" aria-hidden="true">
+                <polyline fill="none" stroke="#10b981" stroke-width="1.4" points="0,15 6,13 12,14 18,10 24,11 30,8 36,10 42,6 48,7 54,4 60,3" />
+              </svg>
+            </li>
+            <li class="market-snap__row">
+              <span class="market-snap__name">科创 50</span>
+              <span class="market-snap__val">1,025.34</span>
+              <span class="market-snap__chg up">+1.21%</span>
+              <svg class="market-snap__spark" viewBox="0 0 60 20" aria-hidden="true">
+                <polyline fill="none" stroke="#10b981" stroke-width="1.4" points="0,16 6,14 12,15 18,11 24,12 30,8 36,9 42,4 48,5 54,2 60,1" />
+              </svg>
+            </li>
+            <li class="market-snap__row">
+              <span class="market-snap__name">纳斯达克</span>
+              <span class="market-snap__val">21,679.84</span>
+              <span class="market-snap__chg up">+0.63%</span>
+              <svg class="market-snap__spark" viewBox="0 0 60 20" aria-hidden="true">
+                <polyline fill="none" stroke="#10b981" stroke-width="1.4" points="0,15 6,13 12,14 18,12 24,13 30,10 36,11 42,9 48,8 54,7 60,6" />
+              </svg>
+            </li>
+            <li class="market-snap__row">
+              <span class="market-snap__name">美元/人民币</span>
+              <span class="market-snap__val">7.1782</span>
+              <span class="market-snap__chg down">-0.11%</span>
+              <svg class="market-snap__spark" viewBox="0 0 60 20" aria-hidden="true">
+                <polyline fill="none" stroke="#ef4444" stroke-width="1.4" points="0,8 6,9 12,8 18,10 24,9 30,11 36,10 42,12 48,11 54,13 60,14" />
+              </svg>
+            </li>
+          </ul>
+          <a class="panel__more" href="#">查看完整行情 →</a>
+        </section>
+      </aside>
+    </div>
 
     <!-- =============== Chat 浮窗 =============== -->
     <button class="fab" id="chat-fab" type="button" aria-label="打开 AI 助手" aria-expanded="false" aria-controls="chat-modal">

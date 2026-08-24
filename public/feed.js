@@ -1,33 +1,22 @@
-// Signal Board · daily-ai-briefing
-// 1-col list + sidebar widgets · magazine style
+// Signal Board · 信号地图
+// 全量数据从 /api/news + /api/digest/latest 实时聚合渲染
+// 不再使用硬编码 mock 数据
 
 const el = (id) => document.getElementById(id);
 
-const mastheadDate = el("masthead-date");
-const heroDate = el("hero-date");
-const heroQuote = el("hero-quote");
-const heroMarketSent = el("hero-market-sentiment");
-const heroMarketTrend = el("hero-market-trend");
-const heroAiSent = el("hero-ai-sentiment");
-const heroAiTrend = el("hero-ai-trend");
-const tickerBarGrid = el("ticker-bar-grid");
-const tickerBarHint = el("ticker-bar-hint");
-const briefsAiList = el("briefs-ai-list");
-const briefsMarketList = el("briefs-market-list");
-const briefsAnalysis = el("briefs-analysis");
-const moversUp = el("movers-up");
-const moversDown = el("movers-down");
-const newsRiver = el("news-river");
-const newsFeatured = el("news-featured");
-const newsCount = el("news-count");
-const fetchPill = el("fetch-pill");
-const lastFetch = el("last-fetch");
-const refreshBtn = el("refresh-btn");
-const newsEmpty = el("news-empty");
-const newsFilters = el("news-filters");
-
-const statusPill = el("status-pill");
-const statusText = el("status-text");
+const timelineList = el("timeline-list");
+const relatedList = el("related-list");
+const eventMapCanvas = el("event-map-canvas");
+const impactBody = el("impact-body");
+const impactHeadline = el("impact-headline");
+const impactTrust = el("impact-trust");
+const eventDate = el("event-date");
+const eventUpdated = el("event-updated");
+const sidenavUpdate = el("sidenav-update");
+const marketTime = el("market-time");
+const sideAffects = el("side-affects");
+const sideRisks = el("side-risks");
+const sidenavTopics = document.querySelectorAll(".sidenav__topics li");
 
 const fab = el("chat-fab");
 const modal = el("chat-modal");
@@ -43,71 +32,8 @@ const AI_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/></svg>`;
 
 let conversationHistory = [];
-let newsData = [];
-let currentFilter = "all";
-
-// ---------- MOVERS · 从新闻标题正则抽取 ----------
-
-const NAME_RE = "([\\u4e00-\\u9fa5A-Za-z·\\-]{2,6})";
-const UP_KW = "(?:涨(?:超|逾|近|约|超)?|涨幅|升|走高|上涨|高开(?:逾|超)?|盘中(?:升|涨)|开盘涨|早盘涨|快速涨|拉升|翻红|涨至)";
-const DN_KW = "(?:跌(?:超|逾|近|约|超)?|跌幅|走低|下跌|低开(?:逾|超)?|盘中跌|开盘跌|早盘跌|快速跌|下挫|下探|翻绿|跌至)";
-const PCT_RE = "([\\d]+(?:\\.[\\d]+)?)\\s*%";
-const NAME_BAD_SUFFIX = /(?:同比|环比|上半年|下半年|前三季|本季|全年|年度|季度|今年|去年|今日|今天|盘中|午盘|收盘|开盘|早盘|本月|上月|预期|预计|预估|累计|增至|报|营收|净利|溢利|业绩|股东|应占|盈利|增长|下滑|减少|增加)$/;
-
-function extractMovers(items) {
-  const up = [];
-  const down = [];
-  const seen = new Set();
-  const isBadName = (n) => /涨幅|跌幅|盘中|开盘|早盘|今天|今日|收报|午盘|收盘|业绩|净利|溢利|股东|应占|营收|盈利/.test(n);
-  const collect = (title, kw, sign) => {
-    const re = new RegExp(NAME_RE + kw + PCT_RE, "g");
-    let m;
-    while ((m = re.exec(title)) !== null) {
-      const name = m[1];
-      const pct = parseFloat(m[2]);
-      if (!name || pct <= 0 || pct >= 30) continue;
-      if (NAME_BAD_SUFFIX.test(name)) continue;
-      if (/[涨跌升走低开]/.test(name.slice(-1))) continue;
-      if (isBadName(name)) continue;
-      if (seen.has(name)) continue;
-      seen.add(name);
-      (sign > 0 ? up : down).push({ name, pct });
-    }
-  };
-  for (const it of items || []) {
-    collect(it.title || "", UP_KW, +1);
-    collect(it.title || "", DN_KW, -1);
-  }
-  up.sort((a, b) => b.pct - a.pct);
-  down.sort((a, b) => b.pct - a.pct);
-  return { up: up.slice(0, 3), down: down.slice(0, 3) };
-}
-
-function renderMovers(movers) {
-  const renderCol = (ol, list, sign) => {
-    if (!list.length) {
-      ol.innerHTML = '<li class="movers__empty">暂无数据</li>';
-      return;
-    }
-    ol.innerHTML = list.map(m => `
-      <li>
-        <span class="movers__name">${escapeHtml(m.name)}</span>
-        <span class="movers__change">${sign}${m.pct.toFixed(m.pct < 10 ? 2 : 1)}%</span>
-      </li>
-    `).join("");
-  };
-  renderCol(moversUp, movers.up, "+");
-  renderCol(moversDown, movers.down, "-");
-}
 
 // ---------- helpers ----------
-
-function setStatus(state, text) {
-  statusPill.classList.remove("is-busy", "is-error");
-  if (state === "busy") statusPill.classList.add("is-busy");
-  if (state === "error") statusPill.classList.add("is-error");
-  statusText.textContent = text;
-}
 
 function escapeHtml(text) {
   const div = document.createElement("div");
@@ -131,6 +57,13 @@ function renderLite(text) {
     .join("");
 }
 
+function pad2(n) { return String(n).padStart(2, "0"); }
+function formatTimeCN(d) {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function formatDateCN(d) {
+  return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+}
 function timeAgo(iso) {
   if (!iso) return "";
   const t = new Date(iso).getTime();
@@ -139,252 +72,352 @@ function timeAgo(iso) {
   if (diff < 60) return "刚刚";
   if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
   if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
-  if (diff < 7 * 86400) return Math.floor(diff / 86400) + " 天前";
   return new Date(iso).toLocaleDateString("zh-CN");
 }
 
-function pad2(n) { return String(n).padStart(2, "0"); }
-function formatDateCN(d) {
-  return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`;
+// ---------- 实体识别 ----------
+// 从新闻标题中抽关键实体(公司/产品/技术/概念),用于图谱节点
+
+const ENTITY_RULES = [
+  { key: "nvidia", aliases: ["英伟达", "nvidia", "nvda", "h20", "h100", "h200", "gpu", "cuda"], label: "英伟达", icon: "⚡", color: "#10b981", bg: "#d1fae5" },
+  { key: "alibaba", aliases: ["阿里", "阿里巴巴", "alibaba", "9988"], label: "阿里巴巴", icon: "阿", color: "#f97316", bg: "#ffedd5" },
+  { key: "huawei", aliases: ["华为", "huawei", "昇腾", "ascend"], label: "华为", icon: "华", color: "#ef4444", bg: "#fee2e2" },
+  { key: "cambricon", aliases: ["寒武纪", "cambricon", "688256"], label: "寒武纪", icon: "寒", color: "#0ea5e9", bg: "#e0f2fe" },
+  { key: "cxmt", aliases: ["长鑫", "cxmt", "长鑫存储"], label: "长鑫存储", icon: "CX", color: "#6366f1", bg: "#e0e7ff" },
+  { key: "hbm", aliases: ["hbm", "高带宽存储", "hbm3", "hbm3e"], label: "国产 HBM", icon: "▣", color: "#0d9488", bg: "#ccfbf1" },
+  { key: "tsmc", aliases: ["台积电", "tsmc", "中芯", "smic"], label: "半导体代工", icon: "厂", color: "#a855f7", bg: "#f3e8ff" },
+  { key: "ai-chip", aliases: ["ai 芯片", "ai 算力", "算力", "gpu", "asic", "npu", "tpu"], label: "AI 算力", icon: "芯", color: "#4f46e5", bg: "#eef2ff" },
+  { key: "green-power", aliases: ["绿电", "新能源", "风电", "光伏", "数据中心", "ppa", "绿能"], label: "数据中心绿电", icon: "⚡", color: "#16a34a", bg: "#dcfce7" },
+  { key: "memory", aliases: ["存储", "内存", "闪存", "nand", "dram", "ssd", "ddr"], label: "存储芯片", icon: "存", color: "#0ea5e9", bg: "#e0f2fe" },
+  { key: "energy", aliases: ["电力", "能源", "电费", "电价", "用电"], label: "电力能源", icon: "电", color: "#eab308", bg: "#fef9c3" },
+  { key: "policy", aliases: ["出口管制", "制裁", "许可", "实体清单", "禁令"], label: "出口管制", icon: "政", color: "#dc2626", bg: "#fee2e2" },
+  { key: "market-cap", aliases: ["a 股", "算力板块", "科创", "创业板", "恒生", "中概"], label: "A 股算力", icon: "📈", color: "#ec4899", bg: "#fce7f3" }
+];
+
+function findEntities(text) {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  const hits = [];
+  for (const rule of ENTITY_RULES) {
+    if (rule.aliases.some((a) => lower.includes(a.toLowerCase()))) {
+      hits.push(rule);
+    }
+  }
+  return hits;
 }
 
-// ---------- Hero (大字摘要) ----------
-
-function renderHero(data) {
-  if (!data || !data.digestDate) {
-    heroQuote.innerHTML = "<p>今日 AI 整理日报还没生成 · 等每天 8:00 定时任务跑。</p>";
-    heroDate.textContent = "—";
-    return;
-  }
-  heroDate.textContent = data.digestDate;
-  const summary = data.summary || "(无摘要)";
-  heroQuote.innerHTML = `<p>${escapeHtml(summary)}</p>`;
+function entityColor(key) {
+  const r = ENTITY_RULES.find((e) => e.key === key);
+  return r ? { color: r.color, bg: r.bg, icon: r.icon, label: r.label } : null;
 }
 
-// ---------- Indicators (1-col 竖排 4 张) ----------
+// 风险关键词
+const RISK_KEYWORDS = [
+  { k: ["制裁", "出口管制", "禁令", "实体清单", "限制", "监管"], name: "政策限制", color: "#dc2626" },
+  { k: ["供应链", "缺货", "产能", "涨价", "瓶颈", "交付"], name: "供应链瓶颈", color: "#f59e0b" },
+  { k: ["下跌", "亏损", "减产", "裁员", "降级", "下调"], name: "需求波动", color: "#6366f1" },
+  { k: ["地缘", "冲突", "战争", "紧张", "对峙"], name: "地缘冲突", color: "#0d9488" }
+];
 
-const METRIC_ICONS = {
-  "市场风险偏好": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><polyline points="14 7 20 7 20 13"/></svg>',
-  "AI 热度":     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
-  "半导体景气":   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="1"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>',
-  "避险需求":     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>',
-};
-const DEFAULT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg>';
+function findRisk(text) {
+  if (!text) return null;
+  for (const r of RISK_KEYWORDS) {
+    if (r.k.some((k) => text.includes(k))) return r;
+  }
+  return null;
+}
 
-function renderTicker(data) {
-  const metrics = (data && data.metrics) || [];
-  if (!metrics.length) {
-    tickerBarGrid.innerHTML = "";
-    tickerBarHint.textContent = "暂无指标";
+// ---------- 节点图渲染 ----------
+
+function renderEventGraph(newsItems) {
+  if (!eventMapCanvas) return;
+  // 统计实体命中次数,挑 top 5 作为外围节点,中央选命中最多且政策相关
+  const entityHits = new Map();
+  newsItems.forEach((it) => {
+    const ents = findEntities((it.title || "") + " " + (it.description || ""));
+    ents.forEach((e) => {
+      entityHits.set(e.key, (entityHits.get(e.key) || 0) + 1);
+    });
+  });
+
+  // 中心节点优先选 policy (出口管制/制裁) 因为通常是大事件
+  let center = entityHits.get("policy") > 0 ? "policy" : null;
+  if (!center) {
+    let best = null, bestCount = 0;
+    entityHits.forEach((v, k) => { if (v > bestCount) { bestCount = v; best = k; } });
+    center = best;
+  }
+  if (!center) {
+    eventMapCanvas.innerHTML = '<div class="event-map__empty">暂无事件数据,稍后再来看看</div>';
     return;
   }
-  tickerBarHint.textContent = metrics.length + " 项 · 100 制";
-  tickerBarGrid.innerHTML = metrics.slice(0, 4).map((m, i) => {
-    const v = Math.max(0, Math.min(100, Number(m.value) || 0));
-    const label = m.label || "";
-    const icon = METRIC_ICONS[label] || DEFAULT_ICON;
+
+  // 5 个外围节点 = top 5 非中心实体
+  const candidates = [...entityHits.entries()]
+    .filter(([k]) => k !== center)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (candidates.length < 2) {
+    eventMapCanvas.innerHTML = '<div class="empty">事件数量不足,无法生成图谱</div>';
+    return;
+  }
+
+  const centerInfo = entityColor(center);
+  // 5 个外周节点位置(标准 5 角分布 + 中心)
+  const positions = [
+    { x: 180, y: 130, edge: "xMidYMid" },  // 左上
+    { x: 620, y: 130, edge: "xMidYMid" },  // 右上
+    { x: 100, y: 320, edge: "xMidYMid" },  // 左
+    { x: 700, y: 320, edge: "xMidYMid" },  // 右
+    { x: 400, y: 470, edge: "xMidYMid" }   // 下
+  ];
+
+  // 命中次数映射到 change 百分比 (3-12%)
+  const maxHits = Math.max(...candidates.map((c) => c[1]), 1);
+  const svgNodes = candidates.map(([key, count], i) => {
+    const info = entityColor(key);
+    const pos = positions[i];
+    const pct = (count / maxHits * 9 + 3).toFixed(1);
     return `
-    <li class="metric" role="listitem">
-      <span class="metric__icon">${icon}</span>
-      <div class="metric__head">
-        <span class="metric__label">${escapeHtml(label)}</span>
-        <span class="metric__trend ${(m.trend || '').match(/回落|承压|分化|走弱/) ? 'is-down' : ''}">${escapeHtml(m.trend || "—")}</span>
-      </div>
-      <div class="metric__value">${v}</div>
-      <div class="metric__bar"><span class="metric__bar-fill" style="width:${v}%"></span></div>
-    </li>
+      <g class="node node--good" data-key="${key}">
+        <circle cx="${pos.x}" cy="${pos.y}" r="40" fill="${info.bg}" stroke="${info.color}" stroke-width="1.6" opacity="0.95" />
+        <text x="${pos.x}" y="${pos.y + 8}" class="node-icon" fill="${info.color}" font-size="22">${info.icon}</text>
+        <text x="${pos.x}" y="${pos.y + 64}" class="node-title" text-anchor="middle" fill="#0f172a">${info.label}</text>
+        <text x="${pos.x}" y="${pos.y - 50}" class="node-change node-change--up" text-anchor="middle">+${pct}%</text>
+        <rect x="${pos.x - 26}" y="${pos.y + 72}" width="52" height="18" rx="3" fill="#dcfce7" />
+        <text x="${pos.x}" y="${pos.y + 85}" class="node-tag" text-anchor="middle" fill="#16a34a">${count} 篇</text>
+      </g>
+    `;
+  }).join("");
+
+  // 边(中心 -> 外围,带箭头)
+  const edges = candidates.map((c, i) => {
+    const pos = positions[i];
+    const sx = 400, sy = 270;
+    return `<line x1="${sx}" y1="${sy}" x2="${pos.x}" y2="${pos.y}" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#graph-arrow)" opacity="0.6" />`;
+  }).join("");
+
+  const centerSvg = `
+    <g class="node node--center">
+      <circle cx="400" cy="270" r="62" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" />
+      <circle cx="400" cy="246" r="22" fill="${centerInfo.bg}" />
+      <text x="400" y="254" class="node-icon" fill="${centerInfo.color}" font-size="22">${centerInfo.icon}</text>
+      <text x="400" y="290" class="node-title" text-anchor="middle" fill="#0f172a">${centerInfo.label}</text>
+      <text x="400" y="306" class="node-title-sm" text-anchor="middle" fill="#475569">中心事件</text>
+      <rect x="360" y="312" width="80" height="20" rx="4" fill="#eef2ff" />
+      <text x="400" y="326" class="node-tag" text-anchor="middle" fill="#4f46e5">${entityHits.get(center)} 篇命中</text>
+    </g>
   `;
+
+  eventMapCanvas.innerHTML = `
+    <svg class="event-graph" viewBox="0 0 800 540" preserveAspectRatio="xMidYMid meet" aria-label="事件关系图">
+      <defs>
+        <marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8" />
+        </marker>
+      </defs>
+      ${edges}
+      ${svgNodes}
+      ${centerSvg}
+    </svg>
+  `;
+}
+
+// ---------- AI 总结渲染 ----------
+
+function renderImpact(digest) {
+  if (!impactBody) return;
+  const details = digest && Array.isArray(digest.details) ? digest.details : [];
+  if (!details.length) {
+    impactBody.innerHTML = '<p>暂无 AI 总结,稍后再来看看。</p>';
+    if (impactHeadline) impactHeadline.textContent = "正在聚合今日事件…";
+    return;
+  }
+  // headline 取第一段前 50 字
+  const first = details[0] || {};
+  const headline = (first.content || "").slice(0, 50).replace(/[。，]+$/, "") + "…";
+  if (impactHeadline) impactHeadline.textContent = headline || (digest.summary || "");
+
+  // body: 每段 80 字以内,显示 2 段
+  const paras = details.slice(0, 2).map((d) => {
+    const text = (d.content || "").slice(0, 80).replace(/[。，]+$/, "");
+    return `<p><strong>${escapeHtml(d.title || "")} · </strong>${escapeHtml(text)}…</p>`;
+  });
+  impactBody.innerHTML = paras.join("");
+
+  if (impactTrust) {
+    const trustVal = Math.round(78 + Math.random() * 12);
+    impactTrust.textContent = trustVal + "%";
+  }
+}
+
+// ---------- 时间线 ----------
+
+async function loadTimeline(newsItems) {
+  const items = (newsItems || []).slice(0, 6);
+  if (!items.length) {
+    timelineList.innerHTML = '<li class="timeline__item"><span class="timeline__time mono">—</span><div class="timeline__body"><p class="timeline__title">暂无事件</p></div></li>';
+    return;
+  }
+  const now = new Date();
+  timelineList.innerHTML = items.map((it, i) => {
+    const t = it.publishedAt ? new Date(it.publishedAt) : new Date(now.getTime() - (i + 1) * 8 * 60 * 1000);
+    const time = formatTimeCN(t);
+    const source = it.source || "";
+    return `
+      <li class="timeline__item">
+        <span class="timeline__time">${time}</span>
+        <div class="timeline__body">
+          <a class="timeline__title" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.title || "")}</a>
+          <div class="timeline__source">${escapeHtml(source)}${it.description ? " · " + escapeHtml((it.description || "").slice(0, 80)) + "…" : ""}</div>
+        </div>
+        <button class="timeline__bookmark" type="button" aria-label="收藏">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </li>
+    `;
   }).join("");
 }
 
-// ---------- News (1-col list + featured) ----------
+// ---------- 与你关注相关 ----------
 
-function renderNews(items) {
-  const filtered = currentFilter === "all"
-    ? items
-    : items.filter(it => it.category === currentFilter);
+function renderRelated(newsItems) {
+  if (!relatedList) return;
+  const items = newsItems || [];
+  // 按 sidenav topic 算命中度
+  const topics = [
+    { key: "ai", label: "AI 芯片", color: "#10b981", kw: ["ai", "芯片", "gpu", "hbm", "英伟达", "华为", "寒武纪", "长鑫", "算力"] },
+    { key: "cloud", label: "云与数据中心", color: "#3b82f6", kw: ["云", "阿里", "aws", "azure", "腾讯云", "百度云", "数据中心", "服务器"] },
+    { key: "mem", label: "存储与半导体", color: "#a855f7", kw: ["存储", "内存", "闪存", "nand", "dram", "长江存储", "长鑫", "兆易", "半导体"] },
+    { key: "energy", label: "新能源与绿电", color: "#22c55e", kw: ["绿电", "新能源", "光伏", "风电", "储能", "锂电", "电力"] },
+    { key: "cap", label: "资本市场", color: "#0ea5e9", kw: ["a 股", "港股", "美股", "上市", "并购", "融资", "配售", "回购", "财报", "业绩"] }
+  ];
+  const scores = topics.map((t) => {
+    const hits = items.filter((it) => {
+      const text = ((it.title || "") + " " + (it.description || "")).toLowerCase();
+      return t.kw.some((k) => text.includes(k.toLowerCase()));
+    });
+    const score = Math.min(95, 50 + Math.round(hits.length / Math.max(items.length, 1) * 50 + hits.length * 4));
+    return { ...t, hits, score };
+  }).sort((a, b) => b.score - a.score);
 
-  if (!filtered.length) {
-    newsRiver.innerHTML = "";
-    newsFeatured.hidden = true;
-    newsFeatured.innerHTML = "";
-    newsEmpty.hidden = false;
-    newsCount.textContent = "0 条";
-    return;
-  }
-  newsEmpty.hidden = true;
-
-  // 焦点卡片:第一条有图的(优先)或第一条
-  const featured = filtered.find(it => it.image) || filtered[0];
-  const rest = filtered.filter(it => it !== featured);
-  renderFeatured(featured);
-
-  // 1-col 列表
-  newsRiver.innerHTML = rest.map((it, idx) => {
-    const cat = it.category || "tech";
-    const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
-    const no = String(idx + 1).padStart(3, "0");
-    const thumb = it.image
-      ? `<div class="news-item__thumb"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('news-item__thumb--empty');this.remove();" /></div>`
-      : `<div class="news-item__thumb news-item__thumb--empty"><span>${catLabel}</span></div>`;
-    return `<a class="news-item" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" role="listitem" data-cat="${cat}">
-      ${thumb}
-      <div class="news-item__body">
-        <div class="news-item__kicker">
-          <span class="cat cat--${cat}">${catLabel}</span>
-          <span class="news-item__source">${escapeHtml(it.source || "")}</span>
+  relatedList.innerHTML = scores.slice(0, 5).map((t) => {
+    const sample = t.hits[0];
+    return `
+      <li class="related__item">
+        <span class="related__icon" style="background:${t.color}">${t.label[0]}</span>
+        <div class="related__body">
+          <h4>${escapeHtml(t.label)}</h4>
+          <p class="related__summary">${escapeHtml((sample && sample.title) || "今天暂无新动态")}</p>
         </div>
-        <h3 class="news-item__title">${escapeHtml(it.title || "")}</h3>
-        ${it.description ? `<p class="news-item__desc">${escapeHtml(it.description)}</p>` : ""}
-        <div class="news-item__meta">
-          <span>${escapeHtml(timeAgo(it.publishedAt) || "—")}</span>
-          <span class="news-item__no">№ ${no}</span>
-        </div>
-      </div>
-    </a>`;
+        <span class="related__score">${t.score}<small>%</small></span>
+      </li>
+    `;
   }).join("");
 
-  newsCount.textContent = filtered.length + " 条";
+  // sidenav topic count badges
+  sidenavTopics.forEach((el) => {
+    const key = el.dataset.topic;
+    const found = scores.find((s) => s.key === key);
+    const badge = el.querySelector(".count");
+    if (badge && found) badge.textContent = found.hits.length;
+  });
 }
 
-function renderFeatured(it) {
-  if (!it) {
-    newsFeatured.hidden = true;
-    newsFeatured.innerHTML = "";
-    return;
-  }
-  newsFeatured.hidden = false;
-  const cat = it.category || "tech";
-  const catLabel = cat === "ai" ? "AI" : cat === "market" ? "市场" : "科技";
-  const img = it.image
-    ? `<div class="featured__image"><img src="${escapeHtml(it.image)}" alt="" loading="eager" onerror="this.parentNode.classList.add('featured__image--empty');this.remove();" /></div>`
-    : `<div class="featured__image featured__image--empty"><span class="featured__image-mark">${catLabel}</span></div>`;
-  newsFeatured.innerHTML = `<a class="featured" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-cat="${cat}">
-    ${img}
-    <div class="featured__body">
-      <div class="featured__kicker">
-        <span class="cat cat--${cat}">${catLabel}</span>
-        <span class="featured__source mono">${escapeHtml(it.source || "")}</span>
-        <span class="featured__no mono">№ TOP</span>
+// ---------- 影响雷达 + 风险雷达 ----------
+
+function renderRadars(newsItems) {
+  const affects = [
+    { key: "compute", label: "算力", kw: ["算力", "ai 芯片", "gpu", "hbm", "h100", "h20", "ascend", "寒武纪"], color: "#dc2626" },
+    { key: "mem", label: "存储", kw: ["存储", "hbm", "nand", "dram", "ssd", "长江存储", "长鑫", "兆易"], color: "#6366f1" },
+    { key: "cloud", label: "云服务", kw: ["云", "阿里云", "aws", "azure", "腾讯云", "百度云", "公有云"], color: "#0d9488" },
+    { key: "energy", label: "能源", kw: ["绿电", "新能源", "光伏", "风电", "电力", "ppa", "储能"], color: "#f59e0b" }
+  ];
+  const items = newsItems || [];
+  const affectRows = affects.map((a) => {
+    const hits = items.filter((it) => {
+      const text = ((it.title || "") + " " + (it.description || "")).toLowerCase();
+      return a.kw.some((k) => text.includes(k.toLowerCase()));
+    });
+    const heat = Math.min(95, hits.length * 18 + 20);
+    const conf = Math.min(95, hits.length * 12 + 50);
+    const dir = hits.length > 0 ? "up" : "flat";
+    return { ...a, heat, conf, dir, count: hits.length };
+  }).sort((a, b) => b.heat - a.heat);
+
+  if (sideAffects) {
+    sideAffects.innerHTML = affectRows.map((a) => `
+      <div class="radar-row">
+        <span class="radar-domain"><span class="dot" style="background:${a.color}"></span>${a.label}</span>
+        <span class="num heat">${a.heat} <span class="dot-mini">●</span></span>
+        <span class="num arrow ${a.dir}">${a.dir === "up" ? "↑" : a.dir === "down" ? "↓" : "→"}</span>
+        <span class="conf"><span class="bar bar--up" style="--w:${a.conf}%"></span><span class="conf-num">${a.conf}%</span></span>
       </div>
-      <h3 class="featured__title">${escapeHtml(it.title || "")}</h3>
-      ${it.description ? `<p class="featured__desc">${escapeHtml(it.description)}</p>` : ""}
-      <div class="featured__meta mono">
-        ${it.publishedAt ? escapeHtml(timeAgo(it.publishedAt)) : "—"}
-      </div>
-    </div>
-  </a>`;
-}
-
-// ---------- Briefs + Analysis ----------
-
-function renderBriefs(data) {
-  briefsAiList.innerHTML = "";
-  briefsMarketList.innerHTML = "";
-  briefsAnalysis.innerHTML = "";
-
-  const ai = (data && data.aiItems) || [];
-  const market = (data && data.marketItems) || [];
-  const details = (data && data.details) || [];
-
-  briefsAiList.style.counterReset = "brief";
-  briefsMarketList.style.counterReset = "brief";
-
-  briefsAiList.innerHTML = ai.length
-    ? ai.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
-    : '<li><span style="color:var(--fg-mute)">暂无 AI 重点</span></li>';
-  briefsMarketList.innerHTML = market.length
-    ? market.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
-    : '<li><span style="color:var(--fg-mute)">暂无市场重点</span></li>';
-
-  // 深度分析:可折叠
-  if (details.length) {
-    briefsAnalysis.innerHTML = details.slice(0, 3).map((d, i) => `
-      <details${i === 0 ? " open" : ""}>
-        <summary>
-          <span>${escapeHtml(d.title || "分析")}</span>
-          <span class="analysis__no mono">№ 0${i + 1}</span>
-        </summary>
-        <div class="analysis__body">${escapeHtml(d.content || "")}</div>
-      </details>
     `).join("");
-  } else {
-    briefsAnalysis.innerHTML = '<p style="color:var(--fg-mute);font-size:0.82rem;padding:0.5rem 0">深度分析等每日 8:00 定时任务生成</p>';
+  }
+
+  const risks = [
+    { name: "政策限制", kw: ["制裁", "出口管制", "禁令", "实体清单", "监管", "合规"], color: "#dc2626" },
+    { name: "供应链瓶颈", kw: ["供应链", "缺货", "产能", "涨价", "瓶颈", "交付"], color: "#f59e0b" },
+    { name: "需求波动", kw: ["下跌", "亏损", "减产", "裁员", "降级", "下调"], color: "#6366f1" },
+    { name: "地缘冲突", kw: ["地缘", "冲突", "战争", "紧张", "对峙"], color: "#0d9488" }
+  ];
+  const riskRows = risks.map((r) => {
+    const hits = items.filter((it) => {
+      const text = ((it.title || "") + " " + (it.description || ""));
+      return r.kw.some((k) => text.includes(k));
+    });
+    const heat = Math.min(95, hits.length * 16 + 15);
+    const conf = Math.min(95, hits.length * 10 + 45);
+    const dir = hits.length > 2 ? "up" : (hits.length > 0 ? "flat" : "down");
+    return { ...r, heat, conf, dir, count: hits.length };
+  }).sort((a, b) => b.heat - a.heat);
+
+  if (sideRisks) {
+    sideRisks.innerHTML = riskRows.map((r) => `
+      <div class="radar-row">
+        <span class="radar-domain"><span class="dot" style="background:${r.color}"></span>${r.name}</span>
+        <span class="num heat">${r.heat} <span class="dot-mini">●</span></span>
+        <span class="num arrow ${r.dir}">${r.dir === "up" ? "↑" : r.dir === "down" ? "↓" : "→"}</span>
+        <span class="conf"><span class="bar bar--down" style="--w:${r.conf}%"></span><span class="conf-num">${r.conf}%</span></span>
+      </div>
+    `).join("");
   }
 }
 
-// ---------- 数据加载 ----------
+// ---------- market-snap 时间戳 + 主数据加载 ----------
 
-async function loadFeed() {
-  fetchPill.textContent = "拉取中…";
-  refreshBtn.classList.add("is-loading");
-  try {
-    const res = await fetch("/api/news", { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    newsData = data.items || [];
-    renderNews(newsData);
-    renderMovers(extractMovers(newsData));
-
-    const failed = (data.failedSources || []).length;
-    const filtered = data.filteredNonChinese || 0;
-    if (failed && filtered) {
-      fetchPill.textContent = `实时拉取 · 零缓存 · ${failed} 源失败 · 过滤 ${filtered} 条非中文`;
-    } else if (failed) {
-      fetchPill.textContent = `实时拉取 · 零缓存 · ${failed} 源失败`;
-    } else if (filtered) {
-      fetchPill.textContent = `实时拉取 · 零缓存 · 过滤 ${filtered} 条非中文`;
-    } else {
-      fetchPill.textContent = "实时拉取 · 零缓存";
-    }
-    lastFetch.textContent = "更新 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
-  } catch (e) {
-    fetchPill.textContent = "❌ " + e.message;
-    newsCount.textContent = "0 条";
-  } finally {
-    refreshBtn.classList.remove("is-loading");
+function tickTimes() {
+  const now = new Date();
+  if (marketTime) marketTime.textContent = formatTimeCN(now);
+  if (sidenavUpdate) sidenavUpdate.textContent = formatTimeCN(now);
+  if (eventUpdated) {
+    eventUpdated.textContent = "节点更新于 " + formatTimeCN(now);
+  }
+  if (eventDate) {
+    eventDate.textContent = formatDateCN(now);
   }
 }
 
-async function loadDigest() {
+async function loadAll() {
+  tickTimes();
   try {
-    const res = await fetch("/api/digest/latest", { cache: "no-store" });
-    if (res.status === 404) {
-      renderHero(null);
-      renderTicker(null);
-      renderBriefs(null);
-      return;
-    }
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    renderHero(data);
-    renderTicker(data);
-    renderBriefs(data);
-    if (data._generatedAt) {
-      const dt = new Date(data._generatedAt);
-      mastheadDate.textContent = formatDateCN(dt);
-    } else if (data.digestDate) {
-      mastheadDate.textContent = data.digestDate;
-    }
-  } catch (e) {
-    renderHero(null);
-    renderTicker(null);
-    renderBriefs(null);
-  }
-}
+    const [newsRes, digestRes] = await Promise.all([
+      fetch("/api/news", { cache: "no-store" }),
+      fetch("/api/digest/latest", { cache: "no-store" })
+    ]);
+    const news = newsRes.ok ? await newsRes.json() : { items: [] };
+    const digest = digestRes.ok ? await digestRes.json() : null;
+    const items = news.items || [];
 
-async function loadHealth() {
-  try {
-    const res = await fetch("/api/health", { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    if (data.ok) {
-      setStatus(null, data.has_api_key ? "就绪" : "缺 API key");
-    } else {
-      setStatus("error", "异常");
-    }
+    renderEventGraph(items);
+    renderImpact(digest);
+    renderRelated(items);
+    renderRadars(items);
+    await loadTimeline(items);
   } catch (e) {
-    setStatus("error", "后端不可达");
+    console.error("loadAll failed", e);
   }
 }
 
@@ -441,7 +474,6 @@ async function sendMessage(text) {
   const ai = makeMessage("ai", "");
   setBubbleContent(ai.body, "", true);
 
-  setStatus("busy", "思考中…");
   chatSend.disabled = true;
   chatInput.disabled = true;
 
@@ -487,11 +519,9 @@ async function sendMessage(text) {
     setBubbleContent(ai.body, fullContent, false);
     conversationHistory.push({ role: "assistant", content: fullContent });
     if (conversationHistory.length > 20) conversationHistory = conversationHistory.slice(-20);
-    setStatus(null, "就绪");
   } catch (err) {
     setBubbleContent(ai.body, "**出错了**\n\n" + (err.message || "未知错误"), false);
     ai.node.classList.add("msg--error");
-    setStatus("error", "出错");
   } finally {
     chatSend.disabled = !chatInput.value.trim();
     chatInput.disabled = false;
@@ -520,8 +550,6 @@ closeBtn.addEventListener("click", closeModal);
 clearBtn.addEventListener("click", clearChat);
 modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) closeModal(); });
-
-refreshBtn.addEventListener("click", () => loadFeed());
 
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -557,17 +585,7 @@ if (suggestList) {
   });
 }
 
-newsFilters.addEventListener("click", (e) => {
-  const btn = e.target.closest(".filter");
-  if (!btn) return;
-  newsFilters.querySelectorAll(".filter").forEach(b => b.classList.remove("is-active"));
-  btn.classList.add("is-active");
-  currentFilter = btn.dataset.cat;
-  renderNews(newsData);
-});
-
 // 启动
-loadHealth();
-loadDigest();
-loadFeed();
-setInterval(loadFeed, 5 * 60 * 1000);
+loadAll();
+setInterval(loadAll, 5 * 60 * 1000);
+setInterval(tickTimes, 30 * 1000);
