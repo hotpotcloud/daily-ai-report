@@ -158,10 +158,10 @@ function renderBriefs(data) {
     ? market.slice(0, 6).map(s => `<li><span>${escapeHtml(s)}</span></li>`).join("")
     : '<li><span style="color:var(--fg-mute)">暂无市场重点</span></li>';
 
-  // 深度分析:可折叠 details,默认展开第一项
+  // 深度分析:可折叠 details,默认全部展开(右侧本来短,展开补高度)
   if (details.length) {
     briefsAnalysis.innerHTML = details.slice(0, 3).map((d, i) => `
-      <details${i === 0 ? " open" : ""}>
+      <details open>
         <summary>
           <span>${escapeHtml(d.title || "分析")}</span>
           <span class="analysis__no mono">№ 0${i + 1}</span>

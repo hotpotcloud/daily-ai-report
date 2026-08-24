@@ -421,7 +421,7 @@ def fetch_all_news():
         "failedSources": failed,
         "filteredNonChinese": filtered_out,
         "filteredPlaceholder": placeholder_out,
-        "items": deduped[:30],
+        "items": deduped[:20],
     }
 
 # ---------- M3 chat 调用 ----------
