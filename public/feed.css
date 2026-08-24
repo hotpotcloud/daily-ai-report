@@ -95,7 +95,7 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
   backdrop-filter: blur(8px);
 }
 .masthead__row {
-  max-width: 84rem;
+  max-width: min(100%, 100rem);
   margin: 0 auto;
   padding: 0.9rem 1.5rem;
   display: flex;
@@ -192,7 +192,7 @@ ol, ul { list-style: none; padding: 0; margin: 0; }
  * PAPER · 主体版式
  * ============================================================ */
 .paper {
-  max-width: 84rem;
+  max-width: min(100%, 100rem);
   margin: 0 auto;
   padding: 0 1.5rem 2rem;
 }
