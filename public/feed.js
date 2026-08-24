@@ -1,38 +1,73 @@
 // Signal Board · 编辑部智能晨报
 // 全量从 /api/news + /api/digest/latest 实时渲染,无 hardcoded mock
 
-const el = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-const heroDate = el("hero-date");
-const heroWeekday = el("hero-weekday");
-const heroTitle = el("hero-title");
-const heroLede = el("hero-lede");
-const heroImg = el("hero-img");
+const heroDate = $("hero-date");
+const heroWeekday = $("hero-weekday");
+const heroTitle = $("hero-title");
+const heroLede = $("hero-lede");
+const heroImg = $("hero-img");
+const heroCta = $("hero-cta");
 
-const briefingList = el("briefing-list");
-const picksList = el("picks-list");
-const signalsList = el("signals-list");
+const briefingList = $("briefing-list");
+const picksList = $("picks-list");
+const signalsList = $("signals-list");
+const tabLatest = document.querySelector('.editorial__tabs .tab[data-tab="latest"]');
+const tabDeep = document.querySelector('.editorial__tabs .tab[data-tab="deep"]');
 
-const sentimentFill = el("sentiment-fill");
-const sentimentMarker = el("sentiment-marker");
-const sentimentLabel = el("sentiment-label");
-const sentimentNum = el("sentiment-num");
-const sentimentDelta = el("sentiment-delta");
+const sentimentFill = $("sentiment-fill");
+const sentimentMarker = $("sentiment-marker");
+const sentimentLabel = $("sentiment-label");
+const sentimentNum = $("sentiment-num");
+const sentimentDelta = $("sentiment-delta");
 
-const fab = el("chat-fab");
-const modal = el("chat-modal");
-const closeBtn = el("chat-close");
-const clearBtn = el("chat-clear");
-const chatForm = el("chat-form");
-const chatInput = el("chat-input");
-const chatSend = el("chat-send");
-const chatStream = el("chat-stream");
-const suggestList = el("suggest-list");
+const userBtn = $("user-btn");
+const userAvatar = $("user-avatar");
+const userLabel = $("user-label");
+const userPopover = $("user-popover");
+const topSearchInput = document.querySelector(".topbar__search input");
+const collectBtn = document.querySelector('.topbar__btn[aria-label="收藏"]');
+
+const fab = $("chat-fab");
+const modal = $("chat-modal");
+const closeBtn = $("chat-close");
+const clearBtn = $("chat-clear");
+const chatForm = $("chat-form");
+const chatInput = $("chat-input");
+const chatSend = $("chat-send");
+const chatStream = $("chat-stream");
+const suggestList = $("suggest-list");
+const toastStack = $("toast-stack");
 
 const AI_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 7v10l8 5 8-5V7l-8-5z"/><path d="M12 22V12"/><path d="m4 7 8 5 8-5"/></svg>`;
 const USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/></svg>`;
 
 let conversationHistory = [];
+
+// 应用状态
+const state = {
+  news: [],
+  digest: null,
+  user: null,
+  providers: [],
+  activeNav: "all",     // 顶栏主导航:active category
+  activeTab: "latest",  // 编辑精选 tab
+  searchQuery: "",      // 搜索框
+  collected: loadSet("sb.collected"),  // 收藏的 news id
+  followTopics: loadSet("sb.follow") || new Set(["ai", "cloud", "mem", "energy", "cap"]),
+  currentView: "news"   // 当前 picks 视图(最新 / 深度)
+};
+
+function loadSet(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (_) { return new Set(); }
+}
+function saveSet(key, set) {
+  try { localStorage.setItem(key, JSON.stringify([...set])); } catch (_) {}
+}
 
 // ---------- helpers ----------
 
@@ -77,12 +112,10 @@ function timeAgo(iso) {
 
 function estimateReadMinutes(text) {
   if (!text) return 4;
-  // 中文 ~ 300 字/分钟
   const chars = (text.match(/[一-鿿]/g) || []).length;
   return Math.max(2, Math.min(15, Math.round(chars / 300) || 4));
 }
 
-// 简易分类:从标题/描述里抽 tag
 function inferTags(text) {
   if (!text) return ["ai"];
   const t = text.toLowerCase();
@@ -104,7 +137,22 @@ const TAG_LABEL = {
   tech: { text: "科技", cls: "pick__tag--tech briefing__tag--tech" }
 };
 
-// 从标题抽 hash tag
+// 顶栏主导航的 category 关键词
+const NAV_CAT = {
+  all: null,
+  ai: /(ai|大模型|llm|gpt|hbm|算力|训练|推理|智能体|英伟达|寒武纪|长鑫|阿里|华为)/i,
+  tech: /(芯片|半导体|台积|smic|代工|晶圆|科技|手机|windows|苹果|特斯拉|电动车|机器人)/i,
+  market: /(a 股|港股|美股|创业板|科创|恒生|纳斯达克|标普|道琼斯|涨|跌|市值|融资|配售|ipo|财报|业绩|资本|市场|经济|美元|人民币|外汇|债券)/i,
+  policy: /(制裁|出口|许可|实体清单|监管|政策|国务院|发改委|央行|美联储|商务部|外交部|拜登|特朗普)/i,
+  industry: /(行业|产业|制造业|工厂|供应链|物流|航运|航空|零售|消费|汽车|化工|能源|电力)/i
+};
+
+function matchNav(text, nav) {
+  const re = NAV_CAT[nav];
+  if (!re) return true;
+  return re.test(text);
+}
+
 function inferHashTags(text, max = 3) {
   if (!text) return [];
   const dict = [
@@ -128,7 +176,6 @@ function inferHashTags(text, max = 3) {
   return hits;
 }
 
-// 取描述里前 2 句作为 sub
 function makeSub(desc) {
   if (!desc) return "";
   const cleaned = desc.replace(/<[^>]+>/g, "").trim();
@@ -136,8 +183,8 @@ function makeSub(desc) {
   return (m[0] || cleaned).slice(0, 60).trim();
 }
 
-// 从 URL 拿 source
-function shortSource(url) {
+function shortSource(url, sourceName) {
+  if (sourceName) return sourceName;
   if (!url) return "资讯";
   try {
     const u = new URL(url);
@@ -150,13 +197,134 @@ function shortSource(url) {
     if (host.includes("cnbc")) return "CNBC";
     if (host.includes("solidot")) return "Solidot";
     return host.split(".")[0];
-  } catch (_) {
-    return "资讯";
+  } catch (_) { return "资讯"; }
+}
+
+function newsId(item) {
+  // 用 link 末段做 id,fallback 到 title
+  try { return (item.link || "").split("/").filter(Boolean).slice(-2).join("/") || (item.title || "").slice(0, 30); }
+  catch (_) { return (item.title || "").slice(0, 30); }
+}
+
+const HERO_FALLBACK_GRADIENT = "linear-gradient(135deg, #0a0e1a 0%, #1a2236 45%, #2a3556 100%)";
+
+// ---------- Toast ----------
+
+function toast(msg, type = "info", ms = 2400) {
+  if (!toastStack) return;
+  const el = document.createElement("div");
+  el.className = `toast toast--${type}`;
+  el.textContent = msg;
+  toastStack.appendChild(el);
+  setTimeout(() => {
+    el.classList.add("is-leaving");
+    setTimeout(() => el.remove(), 220);
+  }, ms);
+}
+
+// ---------- Auth ----------
+
+async function loadAuth() {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json();
+    state.user = data.user || null;
+    state.providers = data.providers || [];
+    renderUser();
+  } catch (_) { /* ignore */ }
+}
+
+function renderUser() {
+  if (!userBtn) return;
+  const u = state.user;
+  if (u) {
+    userBtn.dataset.loggedIn = "true";
+    if (u.avatar) {
+      userAvatar.innerHTML = `<img src="${escapeHtml(u.avatar)}" alt="" />`;
+    } else {
+      userAvatar.textContent = (u.name || u.login || "U").slice(0, 1);
+    }
+    userLabel.textContent = u.name || u.login || "已登录";
+  } else {
+    userBtn.dataset.loggedIn = "false";
+    userAvatar.textContent = "登";
+    userLabel.textContent = "登录";
   }
 }
 
-// 备用 hero 图
-const HERO_FALLBACK_GRADIENT = "linear-gradient(135deg, #0a0e1a 0%, #1a2236 45%, #2a3556 100%)";
+function renderPopover() {
+  if (!userPopover) return;
+  const u = state.user;
+  if (u) {
+    const providerIcon = u.provider === "github"
+      ? `<div class="user-popover__provider-icon user-popover__provider-icon--github">GH</div>`
+      : `<div class="user-popover__provider-icon user-popover__provider-icon--google">G</div>`;
+    userPopover.innerHTML = `
+      <div class="user-popover__head">
+        <div class="topbar__avatar">${u.avatar ? `<img src="${escapeHtml(u.avatar)}" alt="" />` : escapeHtml((u.name || u.login || "U").slice(0, 1))}</div>
+        <div>
+          <div class="user-popover__name">${escapeHtml(u.name || u.login || "已登录")}<span class="user-popover__provider">${u.provider || ""}</span></div>
+          <div class="user-popover__sub">${escapeHtml(u.login || "")}</div>
+        </div>
+      </div>
+      ${u.profile ? `<a class="user-popover__btn" href="${escapeHtml(u.profile)}" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+        查看个人主页
+      </a>` : ""}
+      <a class="user-popover__btn user-popover__btn--danger" href="/api/auth/logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        退出登录
+      </a>
+    `;
+  } else {
+    const hasGithub = state.providers.includes("github");
+    const hasGoogle = state.providers.includes("google");
+    const buttons = [];
+    if (hasGithub) buttons.push(`<a class="user-popover__btn" href="/api/auth/github">
+      <div class="user-popover__provider-icon user-popover__provider-icon--github">GH</div>
+      <span>使用 GitHub 登录</span>
+    </a>`);
+    if (hasGoogle) buttons.push(`<a class="user-popover__btn" href="/api/auth/google">
+      <div class="user-popover__provider-icon user-popover__provider-icon--google">G</div>
+      <span>使用 Google 登录</span>
+    </a>`);
+    if (!buttons.length) {
+      userPopover.innerHTML = `<div class="user-popover__empty">暂未配置登录通道。请联系管理员在 GitHub Secrets 中添加 <code>GITHUB_CLIENT_ID</code> / <code>GITHUB_CLIENT_SECRET</code>。</div>`;
+    } else {
+      userPopover.innerHTML = `
+        <div class="user-popover__empty" style="border-bottom:1px solid var(--border); padding-bottom:.6rem; margin-bottom:.4rem;">登录后可订阅简报、收藏文章、跨设备同步关注主题。</div>
+        ${buttons.join("")}
+      `;
+    }
+  }
+}
+
+if (userBtn) {
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (userPopover.classList.contains("is-open")) {
+      userPopover.classList.remove("is-open");
+      userBtn.setAttribute("aria-expanded", "false");
+    } else {
+      renderPopover();
+      userPopover.classList.add("is-open");
+      userBtn.setAttribute("aria-expanded", "true");
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (userPopover.classList.contains("is-open") && !userPopover.contains(e.target) && e.target !== userBtn && !userBtn.contains(e.target)) {
+      userPopover.classList.remove("is-open");
+      userBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && userPopover.classList.contains("is-open")) {
+      userPopover.classList.remove("is-open");
+      userBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+}
 
 // ---------- Hero ----------
 
@@ -165,10 +333,9 @@ function renderHero(newsItems, digest) {
   if (heroDate) heroDate.textContent = formatDateCN(now);
   if (heroWeekday) heroWeekday.textContent = WEEKDAYS[now.getDay()];
 
-  // hero 标题:优先从 digest summary 提炼,确保 AI/算力主题;否则取 top 1 news
+  // hero 标题:从 digest.summary 提炼
   let heroTitleText = "";
   if (digest && digest.summary) {
-    // 拿 summary 的第一句话(到第一个"。"或",")
     const m = digest.summary.match(/^[^。，,]+/);
     heroTitleText = m ? m[0] : digest.summary.slice(0, 24);
   }
@@ -176,23 +343,16 @@ function renderHero(newsItems, digest) {
     const allItems = (newsItems || []);
     heroTitleText = (allItems[0] && allItems[0].title) || (digest && digest.title) || "今日 AI 与市场要闻";
   }
-  // 长度控制在 24 字
-  if (heroTitleText.length > 24) {
-    heroTitleText = heroTitleText.slice(0, 23) + "…";
-  }
+  if (heroTitleText.length > 24) heroTitleText = heroTitleText.slice(0, 23) + "…";
   if (heroTitle) heroTitle.textContent = heroTitleText;
 
-  // 副标题:lede 已有,这里不需要
-  const top = (newsItems && newsItems[0]) || null;
-
-  // lede 用 digest.summary
   if (heroLede && digest && digest.summary) {
     heroLede.textContent = digest.summary;
-  } else if (heroLede && top && top.description) {
-    heroLede.textContent = (top.description || "").replace(/<[^>]+>/g, "").slice(0, 120);
+  } else if (heroLede && newsItems && newsItems[0] && newsItems[0].description) {
+    heroLede.textContent = (newsItems[0].description || "").replace(/<[^>]+>/g, "").slice(0, 120);
   }
 
-  // hero 图
+  const top = (newsItems && newsItems[0]) || null;
   if (heroImg && top && top.image) {
     heroImg.style.backgroundImage = `url('${top.image}'), ${HERO_FALLBACK_GRADIENT}`;
     heroImg.style.backgroundSize = "cover";
@@ -200,12 +360,49 @@ function renderHero(newsItems, digest) {
   } else if (heroImg) {
     heroImg.style.backgroundImage = HERO_FALLBACK_GRADIENT;
   }
-
-  // hero img credit
   const creditEl = heroImg && heroImg.querySelector(".hero__img-credit");
   const sourceEl = heroImg && heroImg.querySelector(".hero__img-source");
-  if (creditEl) creditEl.textContent = "图 · " + (top ? shortSource(top.link) + " · 配图" : "视觉中国");
+  if (creditEl) creditEl.textContent = "图 · " + (top ? shortSource(top.link, top.source) + " · 配图" : "视觉中国");
   if (sourceEl) sourceEl.textContent = "来源 · " + (top && top.source ? top.source : "编辑部综合");
+}
+
+// CTA:生成今日简报 → 复制 + 弹 toast
+if (heroCta) {
+  heroCta.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const d = state.digest;
+    if (!d) { toast("简报尚未加载,请稍后再试", "error"); return; }
+    const lines = [];
+    lines.push(`【${d.title || "AI 与市场晨报"}】${d.digestDate || ""}`);
+    lines.push(`市场情绪:${d.marketSentiment || "—"}   AI 情绪:${d.aiSentiment || "—"}`);
+    if (d.summary) lines.push("", d.summary);
+    if (Array.isArray(d.details)) {
+      d.details.forEach((seg) => {
+        if (seg.title || seg.content) {
+          lines.push("", `— ${seg.title || ""} —`);
+          if (seg.content) lines.push(seg.content);
+        }
+      });
+    }
+    const text = lines.join("\n");
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast("今日简报已复制到剪贴板", "success");
+      } else {
+        // fallback
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast("已复制到剪贴板", "success");
+      }
+    } catch (err) {
+      toast("复制失败,请检查浏览器权限", "error");
+    }
+  });
 }
 
 // ---------- 5 分钟晨报 ----------
@@ -220,38 +417,108 @@ function renderBriefing(newsItems) {
   const now = Date.now();
   briefingList.innerHTML = items.map((it, i) => {
     const t = it.publishedAt ? new Date(it.publishedAt) : new Date(now - (i + 1) * 35 * 60 * 1000);
-    const hh = pad2(t.getHours());
-    const mm = pad2(t.getMinutes());
-    const time = `${hh}:${mm}`;
+    const time = `${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
     const tagKeys = inferTags((it.title || "") + " " + (it.description || ""));
     const tag = TAG_LABEL[tagKeys[0]] || TAG_LABEL.ai;
     const desc = (it.description || "").replace(/<[^>]+>/g, "").slice(0, 90);
     return `
-      <li class="briefing__item">
+      <li class="pick briefing__item" data-href="${escapeHtml(it.link || "#")}">
         <span class="briefing__time">${time}</span>
         <div class="briefing__dot"></div>
         <div class="briefing__body">
           <span class="${tag.cls}">${tag.text}</span>
           <h3 class="briefing__item-title">${escapeHtml(it.title || "")}</h3>
           <p class="briefing__desc">${escapeHtml(desc)}</p>
-          <a class="briefing__more" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer">查看完整解读 →</a>
+          <a class="briefing__more" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-stop="1">查看完整解读 →</a>
         </div>
       </li>
     `;
   }).join("");
+  // 整张卡片可点击(但 more 链接自己阻止冒泡)
+  briefingList.querySelectorAll(".briefing__item").forEach((li) => {
+    li.addEventListener("click", (e) => {
+      if (e.target.closest("[data-stop]")) return;
+      const href = li.dataset.href;
+      if (href && href !== "#") window.open(href, "_blank", "noopener,noreferrer");
+    });
+    li.style.cursor = "pointer";
+  });
 }
 
 // ---------- 编辑精选 ----------
 
-function renderPicks(newsItems) {
+function getDisplayedPicks() {
+  const all = state.news || [];
+  const q = (state.searchQuery || "").trim().toLowerCase();
+  const nav = state.activeNav;
+  let list = all.filter((it) => {
+    const text = (it.title || "") + " " + (it.description || "");
+    if (!matchNav(text, nav)) return false;
+    if (q) {
+      if (!text.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+  // 跳过前 3 个(briefing 用过)
+  if (state.activeNav === "all" && !q) {
+    list = list.slice(3, 7);
+  } else {
+    list = list.slice(0, 6);
+  }
+  return list;
+}
+
+function getDeepPicks() {
+  // 深度视图:从 digest.details 拆段展示
+  const d = state.digest;
+  if (!d || !Array.isArray(d.details) || !d.details.length) return [];
+  return d.details.map((seg, i) => ({
+    id: "deep-" + i,
+    title: seg.title || "深度解读",
+    description: seg.content || "",
+    source: "编辑部",
+    publishedAt: d._generatedAt || new Date().toISOString(),
+    isDeep: true,
+    deepIndex: i
+  }));
+}
+
+function renderPicks() {
   if (!picksList) return;
-  // picks 取 next 4(避开 briefing 用的 top 3)
-  const items = (newsItems || []).slice(3, 7);
-  if (!items.length) {
-    picksList.innerHTML = '<li class="pick pick--loading">暂无新闻</li>';
+  const list = state.activeTab === "deep" ? getDeepPicks() : getDisplayedPicks();
+  if (!list.length) {
+    const empty = state.activeTab === "deep" ? "暂无深度解读" :
+      (state.searchQuery ? "没找到匹配的新闻" : "暂无新闻");
+    picksList.innerHTML = `<li class="pick pick--loading">${empty}</li>`;
     return;
   }
-  picksList.innerHTML = items.map((it) => {
+  if (state.activeTab === "deep") {
+    picksList.innerHTML = list.map((it) => `
+      <li class="pick pick--deep" data-deep="${it.deepIndex}">
+        <div class="pick__cover pick__cover--placeholder" aria-hidden="true">D${it.deepIndex + 1}</div>
+        <div class="pick__body">
+          <div class="pick__tags">
+            <span class="pick__tag pick__tag--lead">深度</span>
+            <span class="pick__tag pick__tag--ai">AI 分析</span>
+          </div>
+          <h3 class="pick__title">${escapeHtml(it.title)}</h3>
+          <p class="pick__desc">${escapeHtml((it.description || "").slice(0, 220))}${(it.description || "").length > 220 ? "…" : ""}</p>
+          <p class="pick__meta">
+            <span class="pick__source">编辑部</span>
+            <span>·</span>
+            <span class="pick__read">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              ${estimateReadMinutes(it.description)} 分钟
+            </span>
+          </p>
+        </div>
+      </li>
+    `).join("");
+    return;
+  }
+  picksList.innerHTML = list.map((it) => {
+    const id = newsId(it);
+    const isCollected = state.collected.has(id);
     const tagKeys = inferTags((it.title || "") + " " + (it.description || ""));
     const tagsHtml = tagKeys.map((k) => {
       const t = TAG_LABEL[k];
@@ -263,18 +530,20 @@ function renderPicks(newsItems) {
     const desc = (it.description || "").replace(/<[^>]+>/g, "").slice(0, 160);
     const time = timeAgo(it.publishedAt);
     const read = estimateReadMinutes((it.title || "") + (it.description || ""));
-    const src = shortSource(it.link);
+    const src = shortSource(it.link, it.source);
     const hashTags = inferHashTags((it.title || "") + " " + (it.description || ""));
-    const hashHtml = hashTags.map((h) => `<a href="#"># ${escapeHtml(h.label)}</a>`).join(" ");
+    const hashHtml = hashTags.map((h) => `<a href="#" data-stop="1" data-tag="${escapeHtml(h.label)}"># ${escapeHtml(h.label)}</a>`).join(" ");
     const coverHtml = it.image
-      ? `<div class="pick__cover"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" /></div>`
-      : `<div class="pick__cover pick__cover--placeholder">${escapeHtml((it.title || "?").slice(0, 1))}</div>`;
+      ? `<a class="pick__cover-wrap" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-stop="1"><div class="pick__cover"><img src="${escapeHtml(it.image)}" alt="" loading="lazy" /></div></a>`
+      : `<a class="pick__cover-wrap" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-stop="1"><div class="pick__cover pick__cover--placeholder">${escapeHtml((it.title || "?").slice(0, 1))}</div></a>`;
     return `
-      <li class="pick">
-        <a class="pick__cover-wrap" href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer">${coverHtml}</a>
+      <li class="pick" data-id="${escapeHtml(id)}" data-link="${escapeHtml(it.link || "#")}">
+        ${coverHtml}
         <div class="pick__body">
-          <div class="pick__tags">${leadTag}${tagsHtml}</div>
-          <h3 class="pick__title"><a href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.title || "")}</a></h3>
+          <div class="pick__tags">${leadTag}${tagsHtml}<button class="pick__collect ${isCollected ? "is-on" : ""}" type="button" data-stop="1" data-collect="${escapeHtml(id)}" aria-label="收藏" title="${isCollected ? "已收藏" : "收藏"}">
+            <svg viewBox="0 0 24 24" fill="${isCollected ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button></div>
+          <h3 class="pick__title"><a href="${escapeHtml(it.link || "#")}" target="_blank" rel="noopener noreferrer" data-stop="1">${escapeHtml(it.title || "")}</a></h3>
           <p class="pick__sub">${escapeHtml(sub)}</p>
           <p class="pick__desc">${escapeHtml(desc)}</p>
           <p class="pick__meta">
@@ -292,6 +561,46 @@ function renderPicks(newsItems) {
       </li>
     `;
   }).join("");
+
+  // 委托:收藏按钮 / hash 点击 / 卡片本身(点空白处)跳链
+  picksList.querySelectorAll(".pick").forEach((li) => {
+    const id = li.dataset.id;
+    const link = li.dataset.link;
+    li.style.cursor = "pointer";
+    li.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-stop]");
+      if (t) {
+        e.preventDefault();
+        if (t.dataset.collect) toggleCollect(t.dataset.collect, t);
+        else if (t.dataset.tag) {
+          // hash tag → 当作搜索
+          state.searchQuery = t.dataset.tag;
+          if (topSearchInput) topSearchInput.value = t.dataset.tag;
+          state.activeTab = "latest";
+          setActiveTab("latest");
+          renderPicks();
+          toast("已按 #" + t.dataset.tag + " 过滤", "info");
+        }
+        return;
+      }
+      if (link && link !== "#") window.open(link, "_blank", "noopener,noreferrer");
+    });
+  });
+}
+
+function toggleCollect(id, btn) {
+  if (state.collected.has(id)) {
+    state.collected.delete(id);
+    if (btn) btn.classList.remove("is-on");
+    if (btn) btn.setAttribute("title", "收藏");
+    toast("已取消收藏", "info");
+  } else {
+    state.collected.add(id);
+    if (btn) btn.classList.add("is-on");
+    if (btn) btn.setAttribute("title", "已收藏");
+    toast("已收藏", "success");
+  }
+  saveSet("sb.collected", state.collected);
 }
 
 // ---------- 待验证信号 ----------
@@ -299,29 +608,16 @@ function renderPicks(newsItems) {
 function renderSignals(digest) {
   if (!signalsList) return;
   const items = [];
-  // 优先从 details 段抽关键句
   if (digest && Array.isArray(digest.marketItems) && digest.marketItems[0]) {
-    items.push({
-      title: "半导体涨价潮延续",
-      hint: digest.marketItems[0].slice(0, 80)
-    });
+    items.push({ title: "半导体涨价潮延续", hint: digest.marketItems[0].slice(0, 80) });
   }
   if (digest && Array.isArray(digest.aiItems) && digest.aiItems[0]) {
-    items.push({
-      title: "AI 资本开支创历史新高",
-      hint: digest.aiItems[0].slice(0, 80)
-    });
+    items.push({ title: "AI 资本开支创历史新高", hint: digest.aiItems[0].slice(0, 80) });
   }
   if (digest && Array.isArray(digest.aiItems) && digest.aiItems[1]) {
-    items.push({
-      title: "国产替代节奏验证",
-      hint: digest.aiItems[1].slice(0, 80)
-    });
+    items.push({ title: "国产替代节奏验证", hint: digest.aiItems[1].slice(0, 80) });
   }
-  // 兜底
-  while (items.length < 3) {
-    items.push({ title: "关注今日剩余事件", hint: "待聚合…" });
-  }
+  while (items.length < 3) items.push({ title: "关注今日剩余事件", hint: "待聚合…" });
   signalsList.innerHTML = items.slice(0, 3).map((s, i) => `
     <li class="signal">
       <span class="signal__num">${i + 1}</span>
@@ -345,10 +641,113 @@ function renderSentiment(digest) {
   if (sentimentLabel) sentimentLabel.textContent = m.trend || digest.marketSentiment || "中性";
   if (sentimentNum) sentimentNum.textContent = String(v);
   if (sentimentDelta) {
-    const delta = (m.value || 0) - 65; // 简单伪增量
+    const delta = (m.value || 0) - 65;
     sentimentDelta.textContent = (delta >= 0 ? "+" : "") + delta;
     sentimentDelta.className = delta >= 0 ? "up" : "down";
   }
+}
+
+// ---------- 主导航 filter ----------
+
+function setActiveNav(key) {
+  state.activeNav = key;
+  document.querySelectorAll(".topbar__item").forEach((el) => {
+    el.classList.toggle("is-active", el.dataset.nav === key);
+  });
+  // 切到 latest 视图(避免 deep 视图 + nav filter 冲突)
+  state.activeTab = "latest";
+  setActiveTab("latest");
+  renderPicks();
+  toast("已切换:" + (NAV_LABELS[key] || key), "info");
+}
+
+const NAV_LABELS = { all: "全部", ai: "AI", tech: "科技", market: "市场", policy: "政策", industry: "行业" };
+
+document.querySelectorAll(".topbar__item").forEach((el) => {
+  const key = el.dataset.nav;
+  if (key) {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (key === "industry") {
+        toast("行业页面建设中", "info");
+        return;
+      }
+      setActiveNav(key);
+    });
+  }
+});
+
+// ---------- 编辑精选 tab ----------
+
+function setActiveTab(key) {
+  state.activeTab = key;
+  if (tabLatest && tabDeep) {
+    tabLatest.classList.toggle("is-active", key === "latest");
+    tabDeep.classList.toggle("is-active", key === "deep");
+  }
+}
+
+if (tabLatest) tabLatest.addEventListener("click", () => { setActiveTab("latest"); renderPicks(); });
+if (tabDeep) tabDeep.addEventListener("click", () => {
+  if (!state.digest || !state.digest.details || !state.digest.details.length) {
+    toast("暂无深度解读", "info");
+    return;
+  }
+  setActiveTab("deep");
+  renderPicks();
+});
+
+// ---------- 搜索 ----------
+
+if (topSearchInput) {
+  let timer = null;
+  topSearchInput.addEventListener("input", (e) => {
+    const v = e.target.value;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      state.searchQuery = v;
+      if (v && state.activeTab !== "latest") setActiveTab("latest");
+      renderPicks();
+    }, 180);
+  });
+  topSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      state.searchQuery = topSearchInput.value;
+      setActiveTab("latest");
+      renderPicks();
+      if (state.searchQuery) toast("搜索:" + state.searchQuery, "info", 1600);
+    } else if (e.key === "Escape") {
+      topSearchInput.value = "";
+      state.searchQuery = "";
+      renderPicks();
+    }
+  });
+}
+
+// ---------- 收藏顶栏 button ----------
+
+if (collectBtn) {
+  collectBtn.addEventListener("click", () => {
+    // 收藏当前页:把当前 hero + digest 打包存
+    const payload = {
+      date: new Date().toISOString(),
+      title: heroTitle ? heroTitle.textContent : "",
+      summary: heroLede ? heroLede.textContent : ""
+    };
+    let collections = loadSet("sb.pageFav");
+    // 用 boolean 标记(单一收藏"当前页")
+    collections = new Set([JSON.stringify(payload)]);
+    saveSet("sb.pageFav", collections);
+    collectBtn.classList.add("is-on");
+    if (!document.getElementById("collect-style")) {
+      const s = document.createElement("style");
+      s.id = "collect-style";
+      s.textContent = `.topbar__btn.is-on svg path { fill: currentColor; }`;
+      document.head.appendChild(s);
+    }
+    toast("已收藏今日简报到本地", "success");
+  });
 }
 
 // ---------- 加载主流程 ----------
@@ -361,15 +760,16 @@ async function loadAll() {
     ]);
     const news = newsRes.ok ? await newsRes.json() : { items: [] };
     const digest = digestRes.ok ? await digestRes.json() : null;
-    const items = news.items || [];
-
-    renderHero(items, digest);
-    renderBriefing(items);
-    renderPicks(items);
-    renderSignals(digest);
-    renderSentiment(digest);
+    state.news = news.items || [];
+    state.digest = digest;
+    renderHero(state.news, state.digest);
+    renderBriefing(state.news);
+    renderPicks();
+    renderSignals(state.digest);
+    renderSentiment(state.digest);
   } catch (e) {
     console.error("loadAll failed", e);
+    toast("加载失败:" + e.message, "error", 4000);
   }
 }
 
@@ -384,7 +784,6 @@ function openModal() {
   fab.hidden = true;
   setTimeout(() => chatInput.focus(), 50);
 }
-
 function closeModal() {
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
@@ -406,29 +805,23 @@ function makeMessage(role, content) {
   chatStream.scrollTop = chatStream.scrollHeight;
   return { node: div, body };
 }
-
 function setBubbleContent(body, content, withCursor) {
   body.innerHTML = renderLite(content) + (withCursor ? '<span class="cursor"></span>' : "");
   chatStream.scrollTop = chatStream.scrollHeight;
 }
-
 async function sendMessage(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
   makeMessage("user", trimmed);
   conversationHistory.push({ role: "user", content: trimmed });
-
   if (suggestList) {
     const welcome = suggestList.closest(".msg--welcome");
     if (welcome) welcome.style.display = "none";
   }
-
   const ai = makeMessage("ai", "");
   setBubbleContent(ai.body, "", true);
-
   chatSend.disabled = true;
   chatInput.disabled = true;
-
   let fullContent = "";
   try {
     const res = await fetch("/api/chat?stream=true", {
@@ -442,7 +835,6 @@ async function sendMessage(text) {
       throw new Error(msg);
     }
     if (!res.body || !res.body.getReader) throw new Error("浏览器不支持流式");
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
@@ -480,7 +872,6 @@ async function sendMessage(text) {
     chatInput.focus();
   }
 }
-
 function clearChat() {
   conversationHistory = [];
   Array.from(chatStream.querySelectorAll(".msg")).forEach((m) => {
@@ -489,7 +880,6 @@ function clearChat() {
   const welcome = chatStream.querySelector(".msg--welcome");
   if (welcome) welcome.style.display = "";
 }
-
 function autoResize() {
   chatInput.style.height = "auto";
   chatInput.style.height = Math.min(chatInput.scrollHeight, 7.5 * 16) + "px";
@@ -510,19 +900,16 @@ chatForm.addEventListener("submit", (e) => {
   autoResize();
   sendMessage(text);
 });
-
 chatInput.addEventListener("input", () => {
   autoResize();
   chatSend.disabled = !chatInput.value.trim();
 });
-
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if (chatInput.value.trim()) chatForm.requestSubmit();
   }
 });
-
 if (suggestList) {
   suggestList.addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
@@ -537,15 +924,7 @@ if (suggestList) {
   });
 }
 
-// tab 切换
-document.querySelectorAll(".editorial__tabs .tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".editorial__tabs .tab").forEach((t) => t.classList.remove("is-active"));
-    tab.classList.add("is-active");
-    // 简单实现:切换 tab 不重新拉数据,只视觉切换
-  });
-});
-
 // 启动
+loadAuth();
 loadAll();
 setInterval(loadAll, 5 * 60 * 1000);

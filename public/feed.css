@@ -223,8 +223,11 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid var(--border);
   border-radius: 999px;
   transition: background 0.12s;
+  position: relative;
 }
 .topbar__user:hover { background: var(--bg-soft); }
+.topbar__user[data-logged-in="true"] { padding: 0.3rem 0.85rem 0.3rem 0.3rem; }
+.topbar__user[data-logged-in="true"]:hover { background: var(--bg-soft); }
 .topbar__avatar {
   width: 1.6rem;
   height: 1.6rem;
@@ -235,8 +238,90 @@ button { font: inherit; cursor: pointer; }
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
 }
+.topbar__avatar img { width: 100%; height: 100%; object-fit: cover; }
 .topbar__user svg { width: 0.9rem; height: 0.9rem; }
+.topbar__user-name { font-size: 0.88rem; max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* User popover(登录 / 用户菜单) */
+.user-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 16rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.6rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.user-popover.is-open { display: flex; }
+.user-popover__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.4rem;
+}
+.user-popover__head .topbar__avatar { width: 2.2rem; height: 2.2rem; font-size: 0.95rem; }
+.user-popover__name { font-size: 0.92rem; font-weight: 600; color: var(--fg); }
+.user-popover__sub { font-size: 0.75rem; color: var(--fg-mute); font-family: "JetBrains Mono", monospace; }
+.user-popover__provider {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.65rem;
+  background: var(--bg-soft);
+  color: var(--fg-dim);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+.user-popover__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  width: 100%;
+  font-size: 0.88rem;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.user-popover__btn:hover { background: var(--bg-soft); }
+.user-popover__btn svg { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+.user-popover__btn--danger { color: var(--primary); }
+.user-popover__btn--danger:hover { background: var(--primary-bg); }
+.user-popover__provider-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  display: grid;
+  place-items: center;
+  background: var(--bg-soft);
+  border-radius: 50%;
+  color: var(--fg-dim);
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.user-popover__provider-icon--github { background: #24292e; color: white; }
+.user-popover__provider-icon--google { background: white; color: #4285f4; border: 1px solid var(--border); }
+.user-popover__empty {
+  padding: 0.6rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--fg-mute);
+  line-height: 1.5;
+}
 
 /* ==========================================================================
    PAGE CONTAINER
@@ -680,6 +765,24 @@ button { font: inherit; cursor: pointer; }
 .pick__hash a { color: var(--primary); }
 .pick__hash a:hover { color: var(--primary-2); }
 
+/* 单条 pick 收藏按钮 */
+.pick__collect {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg-mute);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.pick__collect:hover { color: var(--primary); border-color: var(--primary); }
+.pick__collect.is-on { color: var(--primary); border-color: var(--primary); background: var(--primary-bg); }
+.pick__collect svg { width: 0.85rem; height: 0.85rem; }
+
 /* WATCHLIST · 观察清单 */
 .watchlist { min-width: 0; }
 .watchlist__head {
@@ -926,8 +1029,46 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ==========================================================================
-   FOOTER
+   TOAST · 轻量反馈
    ========================================================================== */
+
+.toast-stack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 5.5rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+  pointer-events: none;
+  max-width: 22rem;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.95rem;
+  background: var(--fg);
+  color: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  pointer-events: auto;
+  animation: toast-in 0.18s ease-out;
+}
+.toast--success { background: #0d7a3a; }
+.toast--error   { background: var(--primary); }
+.toast--info    { background: #2a3556; }
+.toast svg { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+.toast.is-leaving { animation: toast-out 0.2s ease-in forwards; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(20px); }
+}
 
 .footer {
   max-width: var(--container);

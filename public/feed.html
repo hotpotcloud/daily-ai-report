@@ -25,12 +25,12 @@
         </a>
 
         <nav class="topbar__menu" aria-label="主导航">
-          <a class="topbar__item is-active" href="#">今日简报</a>
-          <a class="topbar__item" href="#">AI</a>
-          <a class="topbar__item" href="#">科技</a>
-          <a class="topbar__item" href="#">市场</a>
-          <a class="topbar__item" href="#">政策</a>
-          <a class="topbar__item topbar__item--menu" href="#">行业
+          <a class="topbar__item is-active" href="#" data-nav="all">今日简报</a>
+          <a class="topbar__item" href="#" data-nav="ai">AI</a>
+          <a class="topbar__item" href="#" data-nav="tech">科技</a>
+          <a class="topbar__item" href="#" data-nav="market">市场</a>
+          <a class="topbar__item" href="#" data-nav="policy">政策</a>
+          <a class="topbar__item topbar__item--menu" href="#" data-nav="industry">行业
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </a>
         </nav>
@@ -44,10 +44,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span>收藏</span>
           </button>
-          <button class="topbar__user" type="button">
-            <span class="topbar__avatar" aria-hidden="true">编</span>
-            <span>编辑部</span>
+          <button class="topbar__user" id="user-btn" type="button" data-logged-in="false" aria-haspopup="true" aria-expanded="false">
+            <span class="topbar__avatar" id="user-avatar" aria-hidden="true">编</span>
+            <span id="user-label">编辑部</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="user-popover" id="user-popover" role="menu" aria-label="账户菜单"></div>
           </button>
         </div>
       </div>
@@ -256,5 +257,8 @@
     </div>
 
     <script src="/feed.js"></script>
+
+    <!-- Toast 反馈层 -->
+    <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
   </body>
 </html>

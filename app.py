@@ -10,13 +10,15 @@ import os
 import json
 import re
 import html
+import secrets
 import urllib.request
 import urllib.error
+import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from flask import Flask, request, jsonify, Response, send_from_directory, stream_with_context
+from flask import Flask, request, jsonify, Response, send_from_directory, stream_with_context, session, redirect
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(APP_DIR, "public")
@@ -493,6 +495,201 @@ def m3_chat_blocking(messages):
 # ---------- Flask app ----------
 
 app = Flask(__name__, static_folder=None)
+# Session 用于 OAuth 流程;secret 优先读 env,否则随机生成(进程重启会失效)
+app.secret_key = os.environ.get("FLASK_SECRET") or secrets.token_hex(32)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 天
+
+# OAuth 配置
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://119.29.189.103:3535")
+
+# ---------- 鉴权路由 ----------
+
+@app.route("/api/auth/providers")
+def auth_providers():
+    """前端按钮用:返回已配置的 provider 列表(没配 Client ID 的不显示)"""
+    out = []
+    if GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET:
+        out.append({"id": "github", "label": "GitHub"})
+    if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+        out.append({"id": "google", "label": "Google"})
+    return jsonify({"providers": out, "configured": bool(out)})
+
+@app.route("/api/auth/me")
+def auth_me():
+    u = session.get("user")
+    return jsonify({"user": u, "providers": _configured_providers()})
+
+def _configured_providers():
+    out = []
+    if GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET:
+        out.append("github")
+    if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+        out.append("google")
+    return out
+
+@app.route("/api/auth/logout")
+def auth_logout():
+    session.pop("user", None)
+    session.pop("oauth_state", None)
+    return redirect("/")
+
+# ---------- GitHub OAuth ----------
+
+@app.route("/api/auth/github")
+def auth_github():
+    if not (GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET):
+        return jsonify({"error": "GitHub OAuth 未配置,请联系管理员设置 GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET"}), 503
+    state = secrets.token_urlsafe(24)
+    session["oauth_state"] = state
+    session["oauth_provider"] = "github"
+    params = {
+        "client_id": GITHUB_CLIENT_ID,
+        "redirect_uri": APP_BASE_URL + "/api/auth/github/callback",
+        "scope": "read:user user:email",
+        "state": state,
+        "allow_signup": "true"
+    }
+    return redirect("https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(params))
+
+@app.route("/api/auth/github/callback")
+def auth_github_callback():
+    code = request.args.get("code")
+    state = request.args.get("state")
+    if not code:
+        return _oauth_error("GitHub 授权失败:未收到 code")
+    if state != session.get("oauth_state"):
+        return _oauth_error("OAuth state 不匹配,请重试")
+    if session.get("oauth_provider") != "github":
+        return _oauth_error("OAuth provider 不匹配")
+    # exchange code for access token
+    try:
+        req = urllib.request.Request(
+            "https://github.com/login/oauth/access_token",
+            data=json.dumps({
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": APP_BASE_URL + "/api/auth/github/callback"
+            }).encode("utf-8"),
+            headers={"Accept": "application/json", "Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as e:
+        return _oauth_error(f"GitHub token 交换失败:{e}")
+    token = data.get("access_token")
+    if not token:
+        return _oauth_error(f"GitHub 未返回 access_token:{data.get('error_description', data)}")
+    # fetch user info
+    try:
+        req = urllib.request.Request(
+            "https://api.github.com/user",
+            headers={"Authorization": f"Bearer {token}", "User-Agent": "daily-ai-briefing", "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            u = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as e:
+        return _oauth_error(f"GitHub user 拉取失败:{e}")
+    session["user"] = {
+        "id": str(u.get("id", "")),
+        "login": u.get("login", ""),
+        "name": u.get("name") or u.get("login", ""),
+        "avatar": u.get("avatar_url", ""),
+        "provider": "github",
+        "profile": u.get("html_url", "")
+    }
+    session.pop("oauth_state", None)
+    session.pop("oauth_provider", None)
+    return redirect("/")
+
+# ---------- Google OAuth ----------
+
+@app.route("/api/auth/google")
+def auth_google():
+    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
+        return jsonify({"error": "Google OAuth 未配置,请联系管理员设置 GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET"}), 503
+    state = secrets.token_urlsafe(24)
+    session["oauth_state"] = state
+    session["oauth_provider"] = "google"
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": APP_BASE_URL + "/api/auth/google/callback",
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account"
+    }
+    return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params))
+
+@app.route("/api/auth/google/callback")
+def auth_google_callback():
+    code = request.args.get("code")
+    state = request.args.get("state")
+    if not code:
+        return _oauth_error("Google 授权失败:未收到 code")
+    if state != session.get("oauth_state"):
+        return _oauth_error("OAuth state 不匹配,请重试")
+    if session.get("oauth_provider") != "google":
+        return _oauth_error("OAuth provider 不匹配")
+    try:
+        req = urllib.request.Request(
+            "https://oauth2.googleapis.com/token",
+            data=urllib.parse.urlencode({
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": APP_BASE_URL + "/api/auth/google/callback"
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as e:
+        return _oauth_error(f"Google token 交换失败:{e}")
+    token = data.get("access_token")
+    if not token:
+        return _oauth_error(f"Google 未返回 access_token:{data.get('error_description', data)}")
+    try:
+        req = urllib.request.Request(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            u = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as e:
+        return _oauth_error(f"Google user 拉取失败:{e}")
+    session["user"] = {
+        "id": str(u.get("id", "")),
+        "login": u.get("email", ""),
+        "name": u.get("name", "") or u.get("email", ""),
+        "avatar": u.get("picture", ""),
+        "email": u.get("email", ""),
+        "provider": "google"
+    }
+    session.pop("oauth_state", None)
+    session.pop("oauth_provider", None)
+    return redirect("/")
+
+def _oauth_error(msg):
+    return Response(
+        f"""<!doctype html><html><body style='font-family:system-ui;padding:3rem;text-align:center'>
+        <h2 style='color:#c8102e'>登录失败</h2>
+        <p>{html.escape(msg)}</p>
+        <p style='margin-top:2rem'><a href='/' style='color:#c8102e'>返回首页</a></p>
+        </body></html>""",
+        status=400,
+        content_type="text/html; charset=utf-8"
+    )
 
 @app.route("/")
 def index():
