@@ -22,6 +22,7 @@ from flask import Flask, request, jsonify, Response, send_from_directory, stream
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(APP_DIR, "public")
+DIST_DIR = os.path.join(APP_DIR, "web", "dist")
 
 DEFAULT_BASE_URL = "https://api.minimaxi.com/v1"
 DEFAULT_MODEL = "MiniMax-M3"
@@ -501,12 +502,59 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 天
 
+# OAuth 日志:用 systemd 日志(/var/log/daily-ai-briefing.log)记录每次 token 交换
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    stream=__import__("sys").stderr
+)
+
 # OAuth 配置:统一用裸名(CLIENT_ID / CLIENT_SECRET / GOOGLE_*)
 GITHUB_CLIENT_ID = os.environ.get("CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://119.29.189.103:3535")
+
+# ---------- OAuth HTTP helper(带 retry + 长 timeout + 详细日志)----------
+
+def _oauth_http_json(method, url, *, data=None, headers=None, timeout=30, label=""):
+    """带 2 次重试的 JSON HTTP 请求。详细错误信息方便诊断 timeout / 网络问题。"""
+    import logging
+    log = logging.getLogger("oauth")
+    if data is not None and isinstance(data, (dict, list)):
+        body = json.dumps(data).encode("utf-8")
+    elif isinstance(data, (bytes, str)):
+        body = data.encode("utf-8") if isinstance(data, str) else data
+    else:
+        body = None
+    h = {"Accept": "application/json"}
+    if body is not None:
+        h["Content-Type"] = "application/json"
+    if headers:
+        h.update(headers)
+    req = urllib.request.Request(url, data=body, headers=h, method=method)
+    last_err = None
+    for attempt in range(1, 3):
+        try:
+            log.info("[oauth:%s] attempt %d %s %s (timeout=%ds)", label, attempt, method, url, timeout)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read()
+                return json.loads(raw.decode("utf-8", errors="replace"))
+        except urllib.error.HTTPError as e:
+            body = ""
+            try: body = e.read().decode("utf-8", errors="replace")
+            except Exception: pass
+            last_err = f"HTTP {e.code}: {body[:200] or e.reason}"
+            log.error("[oauth:%s] HTTPError attempt %d: %s", label, attempt, last_err)
+            # 4xx 不重试(配置错误/参数错)
+            if 400 <= e.code < 500:
+                break
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+            log.error("[oauth:%s] attempt %d failed: %s", label, attempt, last_err)
+    raise RuntimeError(last_err or "OAuth HTTP failed")
 
 # ---------- 鉴权路由 ----------
 
@@ -568,20 +616,14 @@ def auth_github_callback():
     if session.get("oauth_provider") != "github":
         return _oauth_error("OAuth provider 不匹配")
     # exchange code for access token
+    # 旧端点 github.com/login/oauth/access_token 在国内偶发超时,设长 timeout + helper 自带 2 次重试
     try:
-        req = urllib.request.Request(
-            "https://github.com/login/oauth/access_token",
-            data=json.dumps({
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": APP_BASE_URL + "/api/auth/github/callback"
-            }).encode("utf-8"),
-            headers={"Accept": "application/json", "Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _oauth_http_json("POST", "https://github.com/login/oauth/access_token", data={
+            "client_id": GITHUB_CLIENT_ID,
+            "client_secret": GITHUB_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": APP_BASE_URL + "/api/auth/github/callback"
+        }, label="github-token", timeout=30)
     except Exception as e:
         return _oauth_error(f"GitHub token 交换失败:{e}")
     token = data.get("access_token")
@@ -589,12 +631,10 @@ def auth_github_callback():
         return _oauth_error(f"GitHub 未返回 access_token:{data.get('error_description', data)}")
     # fetch user info
     try:
-        req = urllib.request.Request(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {token}", "User-Agent": "daily-ai-briefing", "Accept": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            u = json.loads(resp.read().decode("utf-8", errors="replace"))
+        u = _oauth_http_json("GET", "https://api.github.com/user", headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "daily-ai-briefing"
+        }, label="github-user", timeout=20)
     except Exception as e:
         return _oauth_error(f"GitHub user 拉取失败:{e}")
     session["user"] = {
@@ -640,32 +680,22 @@ def auth_google_callback():
     if session.get("oauth_provider") != "google":
         return _oauth_error("OAuth provider 不匹配")
     try:
-        req = urllib.request.Request(
-            "https://oauth2.googleapis.com/token",
-            data=urllib.parse.urlencode({
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": APP_BASE_URL + "/api/auth/google/callback"
-            }).encode("utf-8"),
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        data = _oauth_http_json("POST", "https://oauth2.googleapis.com/token", data=urllib.parse.urlencode({
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": APP_BASE_URL + "/api/auth/google/callback"
+        }).encode("utf-8"), headers={"Content-Type": "application/x-www-form-urlencoded"}, label="google-token")
     except Exception as e:
         return _oauth_error(f"Google token 交换失败:{e}")
     token = data.get("access_token")
     if not token:
         return _oauth_error(f"Google 未返回 access_token:{data.get('error_description', data)}")
     try:
-        req = urllib.request.Request(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            u = json.loads(resp.read().decode("utf-8", errors="replace"))
+        u = _oauth_http_json("GET", "https://www.googleapis.com/oauth2/v2/userinfo", headers={
+            "Authorization": f"Bearer {token}"
+        }, label="google-user")
     except Exception as e:
         return _oauth_error(f"Google user 拉取失败:{e}")
     session["user"] = {
@@ -693,18 +723,38 @@ def _oauth_error(msg):
 
 @app.route("/")
 def index():
+    # SPA fallback:优先 web/dist/index.html,缺失则用旧的 feed.html
+    dist_index = os.path.join(DIST_DIR, "index.html")
+    if os.path.isfile(dist_index):
+        return send_from_directory(DIST_DIR, "index.html")
     return send_from_directory(PUBLIC_DIR, "feed.html")
 
 @app.route("/chat")
 def chat_page():
+    # 老 chat.html 走旧 public 路径
     return send_from_directory(PUBLIC_DIR, "chat.html")
 
-@app.route("/<path:filename>")
-def static_file(filename):
+# SPA fallback:把所有非 /api 的路径都交给 web/dist/index.html
+# React Router 前端路由接管(/archive /topic/<slug> /category/<slug> /me 等)
+# 同时支持 web/dist/assets/* 静态资源
+@app.route("/<path:path>")
+def spa_or_static(path):
+    if path.startswith("api/"):
+        return jsonify({"error": "not found"}), 404
     # 防路径穿越
-    if ".." in filename or filename.startswith("/"):
+    if ".." in path or path.startswith("/"):
         return jsonify({"error": "forbidden"}), 403
-    return send_from_directory(PUBLIC_DIR, filename)
+    # dist 存在 → 优先
+    dist_index = os.path.join(DIST_DIR, "index.html")
+    if os.path.isfile(dist_index):
+        # 如果是带扩展名的文件,从 dist 取
+        if "." in path.split("/")[-1]:
+            dist_file = os.path.join(DIST_DIR, path)
+            if os.path.isfile(dist_file):
+                return send_from_directory(DIST_DIR, path)
+        return send_from_directory(DIST_DIR, "index.html")
+    # 回退:旧 public 静态资源
+    return send_from_directory(PUBLIC_DIR, path)
 
 @app.route("/api/health")
 def health():
@@ -788,6 +838,306 @@ def chat():
             return jsonify({"error": "M3 API HTTP {}: {}".format(e.code, body[:300])}), 500
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+# ===========================================================================
+# 二级页面 API:专题 / 报告库 / 分类 / 个人中心
+# ===========================================================================
+
+# 专题元数据(3 个固定专题)
+TOPICS_META = {
+    "compute": {
+        "slug": "compute",
+        "title": "国产算力产业链",
+        "sub": "国产芯片、服务器、存储与操作系统全景追踪",
+        "keywords": ["国产", "芯片", "服务器", "存储", "操作系统", "寒武纪", "长鑫", "海光", "龙芯", "中科曙光", "浪潮", "华为", "鲲鹏", "昇腾", "麒麟", "统信", "openEuler"],
+        "color": "#3a4576",
+        "accent": "#1a2236"
+    },
+    "capex": {
+        "slug": "capex",
+        "title": "全球 AI 资本开支",
+        "sub": "云厂商与互联网大厂投入对比与趋势",
+        "keywords": ["资本开支", "capex", "云", "阿里云", "aws", "azure", "腾讯云", "百度云", "meta", "google", "微软", "亚马逊", "甲骨文"],
+        "color": "#0a5a6a",
+        "accent": "#1a4a5a"
+    },
+    "price": {
+        "slug": "price",
+        "title": "模型价格战",
+        "sub": "大模型降价、开源与生态竞争格局",
+        "keywords": ["模型", "大模型", "llm", "gpt", "claude", "gemini", "开源", "huggingface", "llama", "qwen", "文心", "豆包", "kimi", "价格", "降价", "token"],
+        "color": "#5a1a3a",
+        "accent": "#3a1a2a"
+    }
+}
+
+CATEGORIES_META = {
+    "ai": {"label": "AI", "sub": "大模型、算力、芯片、训练、推理、智能体", "kw": ["ai", "大模型", "llm", "gpt", "hbm", "算力", "训练", "推理", "智能体", "英伟达", "寒武纪", "长鑫", "阿里", "华为", "qwen", "claude", "gemini"]},
+    "tech": {"label": "科技", "sub": "硬件、半导体、消费电子、机器人", "kw": ["芯片", "半导体", "台积电", "tsmc", "smic", "代工", "晶圆", "科技", "手机", "windows", "苹果", "特斯拉", "电动车", "机器人"]},
+    "market": {"label": "市场", "sub": "股市、汇市、大宗、宏观、财报", "kw": ["a 股", "港股", "美股", "创业板", "科创", "恒生", "纳斯达克", "标普", "道琼斯", "涨", "跌", "市值", "融资", "配售", "ipo", "财报", "业绩", "资本", "市场", "经济", "美元", "人民币", "外汇", "债券"]},
+    "policy": {"label": "政策", "sub": "监管、出口、补贴、立法", "kw": ["制裁", "出口", "许可", "实体清单", "监管", "政策", "国务院", "发改委", "央行", "美联储", "商务部", "外交部", "拜登", "特朗普", "补贴"]}
+}
+
+@app.route("/api/topics")
+def topics_list():
+    """返回 3 个专题元信息 + 当前每个专题的命中数"""
+    try:
+        all_items = (fetch_all_news() or {}).get("items", [])
+        out = []
+        for slug, meta in TOPICS_META.items():
+            hits = [it for it in all_items if any(k in ((it.get("title") or "") + " " + (it.get("description") or "")) for k in meta["keywords"])]
+            out.append({**meta, "count": len(hits)})
+        return jsonify({"topics": out})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/topics/<slug>")
+def topic_detail(slug):
+    """单个专题:返回该专题的命中新闻 + 摘要"""
+    meta = TOPICS_META.get(slug)
+    if not meta:
+        return jsonify({"error": "专题不存在"}), 404
+    try:
+        all_items = (fetch_all_news() or {}).get("items", [])
+        hits = [it for it in all_items if any(k in ((it.get("title") or "") + " " + (it.get("description") or "")) for k in meta["keywords"])]
+        # 加载 digest
+        digest = None
+        if os.path.exists(DIGEST_PATH):
+            with open(DIGEST_PATH, "r", encoding="utf-8") as f:
+                digest = json.load(f)
+        return jsonify({
+            "topic": meta,
+            "items": hits[:20],
+            "digest": digest,
+            "count": len(hits)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/category/<slug>")
+def category_detail(slug):
+    meta = CATEGORIES_META.get(slug)
+    if not meta:
+        return jsonify({"error": "分类不存在"}), 404
+    try:
+        all_items = (fetch_all_news() or {}).get("items", [])
+        hits = [it for it in all_items if any(k in ((it.get("title") or "") + " " + (it.get("description") or "")) for k in meta["kw"])]
+        return jsonify({
+            "category": {"slug": slug, **meta},
+            "items": hits[:20],
+            "count": len(hits)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/archive")
+def archive_list():
+    """历史简报列表:扫 data/digest-*.json + data/digest.json"""
+    data_dir = os.path.join(APP_DIR, "data")
+    files = []
+    if os.path.isdir(data_dir):
+        for f in sorted(os.listdir(data_dir)):
+            if f.startswith("digest") and f.endswith(".json"):
+                files.append(os.path.join(data_dir, f))
+    files.sort(key=os.path.getmtime if os.path.exists else lambda x: 0, reverse=True)
+    out = []
+    for fp in files:
+        try:
+            with open(fp, "r", encoding="utf-8") as fh:
+                d = json.load(fh)
+            out.append({
+                "file": os.path.basename(fp),
+                "date": d.get("digestDate", ""),
+                "title": d.get("title", ""),
+                "summary": (d.get("summary", "") or "")[:160],
+                "marketSentiment": d.get("marketSentiment", ""),
+                "aiSentiment": d.get("aiSentiment", ""),
+                "size": os.path.getsize(fp),
+                "mtime": datetime.fromtimestamp(os.path.getmtime(fp), tz=timezone.utc).isoformat()
+            })
+        except Exception:
+            pass
+    return jsonify({"items": out, "count": len(out)})
+
+# ---------- 用户数据持久化(SQLite · Python stdlib,易迁移) ----------
+
+import sqlite3
+import threading
+
+DB_PATH = os.path.join(APP_DIR, "data", "users.db")
+_db_lock = threading.Lock()
+_db_conn = None
+
+def _db():
+    """获取全局 SQLite 连接(WAL 模式 + check_same_thread=False)"""
+    global _db_conn
+    if _db_conn is None:
+        _db_conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10)
+        _db_conn.execute("PRAGMA journal_mode=WAL")
+        _db_conn.execute("PRAGMA foreign_keys=ON")
+        _db_init_schema(_db_conn)
+    return _db_conn
+
+def _db_init_schema(conn):
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS users (
+        provider TEXT NOT NULL,
+        external_id TEXT NOT NULL,
+        login TEXT,
+        name TEXT,
+        email TEXT,
+        avatar TEXT,
+        profile TEXT,
+        created_at TEXT NOT NULL,
+        last_seen TEXT NOT NULL,
+        PRIMARY KEY (provider, external_id)
+    );
+    CREATE TABLE IF NOT EXISTS collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        external_id TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        saved_at TEXT NOT NULL,
+        UNIQUE(provider, external_id, item_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(provider, external_id, saved_at DESC);
+    CREATE TABLE IF NOT EXISTS followed_topics (
+        provider TEXT NOT NULL,
+        external_id TEXT NOT NULL,
+        topic TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (provider, external_id, topic)
+    );
+    CREATE INDEX IF NOT EXISTS idx_followed_user ON followed_topics(provider, external_id);
+    """)
+    conn.commit()
+
+def _user_upsert_from_session(conn):
+    """把 session['user'] 同步到 users 表(如果字段变化就更新)"""
+    u = session.get("user")
+    if not u: return None
+    pid = u.get("provider", "?")
+    eid = str(u.get("id") or u.get("login") or "")
+    if not eid: return None
+    now = datetime.now(tz=timezone.utc).isoformat()
+    cur = conn.execute("SELECT created_at FROM users WHERE provider=? AND external_id=?", (pid, eid))
+    row = cur.fetchone()
+    if row is None:
+        conn.execute("""INSERT INTO users(provider, external_id, login, name, email, avatar, profile, created_at, last_seen)
+                        VALUES (?,?,?,?,?,?,?,?,?)""",
+                     (pid, eid, u.get("login"), u.get("name"), u.get("email"),
+                      u.get("avatar"), u.get("profile"), now, now))
+    else:
+        conn.execute("""UPDATE users SET login=?, name=?, email=?, avatar=?, profile=?, last_seen=?
+                        WHERE provider=? AND external_id=?""",
+                     (u.get("login"), u.get("name"), u.get("email"),
+                      u.get("avatar"), u.get("profile"), now, pid, eid))
+    conn.commit()
+    return (pid, eid)
+
+def _user_id_from_session():
+    u = session.get("user")
+    if not u: return None
+    return (u.get("provider", "?"), str(u.get("id") or u.get("login") or ""))
+
+def _require_user():
+    pair = _user_id_from_session()
+    if not pair or not pair[1]:
+        return None, (jsonify({"error": "未登录"}), 401)
+    return pair, None
+
+@app.route("/api/me")
+def me():
+    pair = _user_id_from_session()
+    if not pair or not pair[1]:
+        return jsonify({"user": None, "data": {"collections": [], "followed": []}})
+    with _db_lock:
+        conn = _db()
+        _user_upsert_from_session(conn)
+        # collections
+        rows = conn.execute("""SELECT item_id, payload, saved_at FROM collections
+                               WHERE provider=? AND external_id=? ORDER BY id DESC LIMIT 200""",
+                            pair).fetchall()
+        cols = [{"id": r[0], **json.loads(r[1]), "savedAt": r[2]} for r in rows]
+        # followed
+        frows = conn.execute("""SELECT topic, created_at FROM followed_topics
+                                WHERE provider=? AND external_id=? ORDER BY created_at""",
+                             pair).fetchall()
+        followed = [r[0] for r in frows]
+        return jsonify({"user": session.get("user"), "data": {"collections": cols, "followed": followed}, "id": f"{pair[0]}:{pair[1]}"})
+
+@app.route("/api/me/collections", methods=["GET", "POST", "DELETE"])
+def me_collections():
+    pair, err = _require_user()
+    if err: return err
+    with _db_lock:
+        conn = _db()
+        _user_upsert_from_session(conn)
+        if request.method == "GET":
+            rows = conn.execute("""SELECT item_id, payload, saved_at FROM collections
+                                   WHERE provider=? AND external_id=? ORDER BY id DESC LIMIT 200""",
+                                pair).fetchall()
+            cols = [{"id": r[0], **json.loads(r[1]), "savedAt": r[2]} for r in rows]
+            return jsonify({"collections": cols})
+        body = request.get_json(silent=True) or {}
+        item = body.get("item") or {}
+        if not item.get("id"):
+            return jsonify({"error": "需要 item.id"}), 400
+        now = datetime.now(tz=timezone.utc).isoformat()
+        if request.method == "POST":
+            try:
+                conn.execute("""INSERT INTO collections(provider, external_id, item_id, payload, saved_at)
+                                VALUES (?,?,?,?,?)""",
+                             (*pair, item["id"], json.dumps(item, ensure_ascii=False), now))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass  # 已存在
+            rows = conn.execute("""SELECT item_id, payload, saved_at FROM collections
+                                   WHERE provider=? AND external_id=? ORDER BY id DESC LIMIT 200""",
+                                pair).fetchall()
+            return jsonify({"ok": True, "collections": [{"id": r[0], **json.loads(r[1]), "savedAt": r[2]} for r in rows]})
+        # DELETE
+        conn.execute("""DELETE FROM collections WHERE provider=? AND external_id=? AND item_id=?""",
+                     (*pair, item.get("id", "")))
+        conn.commit()
+        rows = conn.execute("""SELECT item_id, payload, saved_at FROM collections
+                               WHERE provider=? AND external_id=? ORDER BY id DESC LIMIT 200""",
+                            pair).fetchall()
+        return jsonify({"ok": True, "collections": [{"id": r[0], **json.loads(r[1]), "savedAt": r[2]} for r in rows]})
+
+@app.route("/api/me/follow", methods=["GET", "POST", "DELETE"])
+def me_follow():
+    pair, err = _require_user()
+    if err: return err
+    with _db_lock:
+        conn = _db()
+        _user_upsert_from_session(conn)
+        if request.method == "GET":
+            rows = conn.execute("""SELECT topic FROM followed_topics
+                                   WHERE provider=? AND external_id=? ORDER BY created_at""",
+                                pair).fetchall()
+            return jsonify({"followed": [r[0] for r in rows]})
+        body = request.get_json(silent=True) or {}
+        topic = body.get("topic", "")
+        if not topic:
+            return jsonify({"error": "需要 topic"}), 400
+        now = datetime.now(tz=timezone.utc).isoformat()
+        if request.method == "POST":
+            try:
+                conn.execute("""INSERT INTO followed_topics(provider, external_id, topic, created_at)
+                                VALUES (?,?,?,?)""", (*pair, topic, now))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass
+        else:
+            conn.execute("""DELETE FROM followed_topics WHERE provider=? AND external_id=? AND topic=?""",
+                         (*pair, topic))
+            conn.commit()
+        rows = conn.execute("""SELECT topic FROM followed_topics
+                               WHERE provider=? AND external_id=? ORDER BY created_at""",
+                            pair).fetchall()
+        return jsonify({"ok": True, "followed": [r[0] for r in rows]})
 
 # ---------- 启动 ----------
 

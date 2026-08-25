@@ -1,7 +1,15 @@
+# dependencies
 node_modules/
-data/*.db
-data/inbox/*.json
-!data/inbox/*.example.json
+
+# build output
+web/dist/
+*.bak
+data/server.err
+data/server.err.bak
+data/probe*.py
+data/feed-snap*.png
+data/test_*.py
+
+# env
 .env
-.playwright-mcp/
-*.png
+.env.local
