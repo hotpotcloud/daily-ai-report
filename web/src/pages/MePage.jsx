@@ -22,7 +22,10 @@ export default function MePage() {
     setLoading(true);
     try {
       const d = await api.me();
-      setData({ collections: d.collections || [], followed: d.followed || [] });
+      // 后端 /api/me 返回 {user, data: {collections, followed}, id}
+      const cols = d.data?.collections || d.collections || [];
+      const fows = d.data?.followed || d.followed || [];
+      setData({ collections: cols, followed: fows });
     } catch (e) {
       // 401 等
     } finally {

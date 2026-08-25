@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
@@ -58,7 +58,8 @@ function CollectButton({ id, item, onChange }) {
   const [on, setOn] = useState(false);
 
   // 初始状态:已登录则从 /api/me/collections 查;未登录则查 localStorage
-  useState(() => {
+  useEffect(() => {
+    if (!id) return;
     if (user) {
       api.collectionsList().then((d) => {
         setOn((d.collections || []).some((c) => c.id === id));
