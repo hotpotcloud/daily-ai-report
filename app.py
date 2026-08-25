@@ -501,9 +501,9 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 天
 
-# OAuth 配置
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+# OAuth 配置:统一用裸名(CLIENT_ID / CLIENT_SECRET / GOOGLE_*)
+GITHUB_CLIENT_ID = os.environ.get("CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://119.29.189.103:3535")

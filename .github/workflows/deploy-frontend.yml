@@ -64,14 +64,14 @@ jobs:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MINIMAX_BASE_URL: ${{ secrets.MINIMAX_BASE_URL }}
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-          GITHUB_CLIENT_ID: ${{ secrets.GITHUB_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FLASK_SECRET: ${{ secrets.FLASK_SECRET }}
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
-            "MINIMAX_API_KEY='$MINIMAX_API_KEY' MINIMAX_BASE_URL='$MINIMAX_BASE_URL' APP_BASE_URL='$APP_BASE_URL' GITHUB_CLIENT_ID='$GITHUB_CLIENT_ID' GITHUB_CLIENT_SECRET='$GITHUB_CLIENT_SECRET' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' FLASK_SECRET='$FLASK_SECRET' bash /tmp/daily-ai-briefing-deploy/install.sh"
+            "MINIMAX_API_KEY='$MINIMAX_API_KEY' MINIMAX_BASE_URL='$MINIMAX_BASE_URL' APP_BASE_URL='$APP_BASE_URL' CLIENT_ID='$CLIENT_ID' CLIENT_SECRET='$CLIENT_SECRET' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' GOOGLE_CLIENT_SECRET='$GOOGLE_CLIENT_SECRET' FLASK_SECRET='$FLASK_SECRET' bash /tmp/daily-ai-briefing-deploy/install.sh"
 
       - name: Health check
         if: always()
