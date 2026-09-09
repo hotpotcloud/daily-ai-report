@@ -86,7 +86,7 @@ def _fetch_coingecko(symbol):
         return None
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={cid}&vs_currencies=usd&include_24hr_change=true"
     try:
-        j = _http_get_json(url, timeout=5)
+        j = _http_get_json(url, timeout=2)
     except (urllib.error.URLError, TimeoutError, ValueError, Exception):
         return None
     d = (j or {}).get(cid)
@@ -185,7 +185,7 @@ def fetch_kline(symbol, period="day", range_="3M"):
         f"&klt={klt}&fqt=1&end=20500101&lmt={count}"
     )
     try:
-        j = _http_get_json(url, timeout=8)
+        j = _http_get_json(url, timeout=3)
     except (urllib.error.URLError, TimeoutError, ValueError, Exception):
         return _fallback_kline(symbol, period, count)
 
