@@ -65,6 +65,18 @@
 .invest-section {
   margin-bottom: 2.5rem;
 }
+/* 锁死 section 高度,避免数据到达后整块向下推(CLS) */
+.invest-section--macro { min-height: 360px; }
+.invest-section--ticker { min-height: 140px; }
+.invest-section--watch { min-height: 380px; }
+.invest-section--signals { min-height: 420px; }
+.invest-section--skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-mute);
+  font-size: 0.88rem;
+}
 .invest-section__head {
   display: flex;
   justify-content: space-between;

@@ -91,7 +91,7 @@ export default function InvestDashboard() {
 
   return (
     <>
-      <section className="invest-section" aria-labelledby="indices-title">
+      <section className="invest-section invest-section--macro" aria-labelledby="indices-title">
         <header className="invest-section__head">
           <h2 className="section__title" id="indices-title">今日宏观</h2>
           <span className="invest-section__hint mono">
@@ -101,12 +101,12 @@ export default function InvestDashboard() {
         <MacroGrid items={indices} loading={idxLoading} error={idxError} sparklineBySymbol={sparklineBySymbol} />
       </section>
 
-      <section className="invest-section" aria-labelledby="ticker-title">
+      <section className="invest-section invest-section--ticker" aria-labelledby="ticker-title">
         <h2 className="section__title" id="ticker-title">大盘速览</h2>
         <IndexTicker items={ticker} />
       </section>
 
-      <section className="invest-section" aria-labelledby="watchlist-title">
+      <section className="invest-section invest-section--watch" aria-labelledby="watchlist-title">
         <header className="invest-section__head">
           <h2 className="section__title" id="watchlist-title">自选股</h2>
           <span className="invest-section__hint mono">
@@ -117,7 +117,7 @@ export default function InvestDashboard() {
         <WatchlistTable rows={watchRows} onRemove={removeStock} loading={qLoading} />
       </section>
 
-      <section className="invest-section" aria-labelledby="signals-title">
+      <section className="invest-section invest-section--signals" aria-labelledby="signals-title">
         <header className="invest-section__head">
           <h2 className="section__title" id="signals-title">今日投资信号</h2>
           <span className="invest-section__hint mono">
