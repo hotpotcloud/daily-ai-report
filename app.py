@@ -1055,7 +1055,7 @@ import sqlite3
 import threading
 
 from server.invest_data import get_macro_universe, mock_quote
-from server.invest_quotes import fetch_quote, fetch_quotes, fetch_kline, fetch_sparks
+from server.invest_quotes import fetch_quote, fetch_quotes, fetch_kline, fetch_sparks, warmup_cache
 from server.invest_strategies import (
     ensure_seeded as invest_ensure_seeded,
     list_strategies, get_strategy, compute_hits, history_hits,
@@ -1149,6 +1149,13 @@ try:
     invest_ensure_seeded(_db())
 except Exception as _e:
     print("[invest] seed warning:", _e)
+
+# ─── 投资模块启动预热(后台线程,不阻塞)───────────
+try:
+    warmup_cache()
+    print("[invest] warmup: 8 标的已加入后台预热队列")
+except Exception as _e:
+    print("[invest] warmup warning:", _e)
 
 def _user_upsert_from_session(conn):
     """把 session['user'] 同步到 users 表(如果字段变化就更新)"""

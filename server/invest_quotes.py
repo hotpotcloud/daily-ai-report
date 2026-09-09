@@ -136,6 +136,15 @@ def fetch_one(symbol):
     return data, "mock", now
 
 
+def warmup_cache():
+    """启动时预热 8 个宏观标的缓存,免得首屏 6s 等待。
+    同步并行(urllib 阻塞 + ThreadPoolExecutor)"""
+    from concurrent.futures import ThreadPoolExecutor
+    syms = list(EAST_MONEY_SECID.keys()) + list(CRYPTO_IDS.keys())
+    with ThreadPoolExecutor(max_workers=min(8, len(syms))) as ex:
+        list(ex.map(lambda s: fetch_one(s), syms))
+
+
 def fetch_quote(symbol):
     return fetch_one(symbol)
 
