@@ -137,12 +137,24 @@ def fetch_one(symbol):
 
 
 def warmup_cache():
-    """启动时预热 8 个宏观标的缓存,免得首屏 6s 等待。
-    同步并行(urllib 阻塞 + ThreadPoolExecutor)"""
-    from concurrent.futures import ThreadPoolExecutor
+    """启动时预热 8 个宏观标的缓存(后台线程,不阻塞 systemd 启动)
+    短超时(2s),保证哪怕 eastmoney 慢也不拖累首屏请求。
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     syms = list(EAST_MONEY_SECID.keys()) + list(CRYPTO_IDS.keys())
-    with ThreadPoolExecutor(max_workers=min(8, len(syms))) as ex:
-        list(ex.map(lambda s: fetch_one(s), syms))
+
+    def _run():
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            futures = {ex.submit(fetch_one, s): s for s in syms}
+            for f in as_completed(futures, timeout=4):
+                try:
+                    f.result(timeout=2)
+                except Exception:
+                    pass
+
+    t = threading.Thread(target=_run, daemon=True, name="invest-warmup")
+    t.start()
 
 
 def fetch_quote(symbol):
