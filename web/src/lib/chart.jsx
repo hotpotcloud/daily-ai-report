@@ -1,104 +1,96 @@
 // web/src/lib/chart.jsx
-// 极简 SVG 图表,零依赖。
-// 1. <Sparkline data=[…numbers] />     迷你折线(20×40,用于宏观卡)
-// 2. <SparklineArea data=[…] />        填充版迷你面积图
-// 3. <PriceLine data=[…numbers] />     净值曲线(响应式,带坐标)
+// 基于 Recharts 的轻量图表(用开源库,避免手写 SVG 的精度问题)
+// 1. <Sparkline values=[…] />     迷你面积/折线
+// 2. <PriceLine values=[…] />     净值/收益曲线
 
-import { useMemo } from "react";
+import { ResponsiveContainer, AreaChart, Area, LineChart, Line, YAxis, XAxis, Tooltip } from "recharts";
 
-function buildPath(values, w, h, pad = 1) {
-  if (!values || values.length < 2) return "";
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const step = (w - pad * 2) / (values.length - 1);
-  return values
-    .map((v, i) => {
-      const x = pad + i * step;
-      const y = pad + (h - pad * 2) * (1 - (v - min) / range);
-      return (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
-    })
-    .join(" ");
+function pointsFromValues(values) {
+  if (!values || values.length === 0) return [];
+  return values.map((v, i) => ({ i, v: Number(v) || 0 }));
 }
 
-export function Sparkline({ values, width = 80, height = 28, color, fill = false, strokeWidth = 1.4, className = "" }) {
-  if (!values || values.length < 2) return null;
-  const d = buildPath(values, width, height);
+export function Sparkline({
+  values,
+  height = 32,
+  width,
+  color,
+  fill = true,
+  strokeWidth = 1.4,
+  className = ""
+}) {
+  const data = pointsFromValues(values);
+  if (data.length < 2) {
+    return <div className={"sparkline-empty " + className} style={{ height }} />;
+  }
   const positive = values[values.length - 1] >= values[0];
   const stroke = color || (positive ? "var(--up)" : "var(--down)");
-  const id = useMemo(() => "sg-" + Math.random().toString(36).slice(2, 8), []);
-  if (fill) {
-    const areaPath = d + ` L ${(width - 1).toFixed(1)} ${(height - 1).toFixed(1)} L 1 ${(height - 1).toFixed(1)} Z`;
-    return (
-      <svg viewBox={`0 0 ${width} ${height}`} className={"sparkline " + className} aria-hidden="true">
-        <defs>
-          <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity="0.32" />
-            <stop offset="100%" stopColor={stroke} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill={`url(#${id})`} />
-        <path d={d} fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className={"sparkline " + className} aria-hidden="true">
-      <path d={d} fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className={"sparkline " + className} style={{ height, width }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
+          <defs>
+            <linearGradient id={`sg-grad-${positive ? "u" : "d"}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={fill ? 0.32 : 0} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            fill={fill ? `url(#sg-grad-${positive ? "u" : "d"})` : "none"}
+            isAnimationActive={false}
+            dot={false}
+            activeDot={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-// 响应式净值曲线(用于策略历史回溯等)
-export function PriceLine({ values, height = 120, stroke, fillBelow = true, className = "", showAxis = false }) {
-  if (!values || values.length < 2) {
-    return <div className="price-line price-line--empty" style={{ height }}>暂无数据</div>;
+export function PriceLine({ values, height = 140, className = "", showAxis = false }) {
+  const data = pointsFromValues(values);
+  if (data.length < 2) {
+    return <div className={"price-line price-line--empty " + className} style={{ height }}>暂无数据</div>;
   }
-  // 用 16:9 比例假设宽,实际由外层容器控制(viewBox 拉伸)
-  const w = 600;
-  const h = 200;
-  const padX = 8;
-  const padY = 12;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const step = (w - padX * 2) / (values.length - 1);
-  const points = values.map((v, i) => {
-    const x = padX + i * step;
-    const y = padY + (h - padY * 2) * (1 - (v - min) / range);
-    return [x, y];
-  });
-  const d = points.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-  const areaD = d + ` L ${(w - padX).toFixed(1)} ${(h - padY).toFixed(1)} L ${padX} ${(h - padY).toFixed(1)} Z`;
   const positive = values[values.length - 1] >= values[0];
-  const color = stroke || (positive ? "var(--up)" : "var(--down)");
-  const id = "pl-" + Math.random().toString(36).slice(2, 8);
-
-  // 选 4 个 y 轴标签
-  const yLabels = [max, max - range / 3, max - (range * 2) / 3, min].map((v) => v.toFixed(2));
-
+  const color = positive ? "var(--up)" : "var(--down)";
   return (
     <div className={"price-line " + className} style={{ height }}>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="price-line__svg" aria-hidden="true">
-        <defs>
-          <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {fillBelow && <path d={areaD} fill={`url(#${id})`} />}
-        <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        {points.length > 0 && (
-          <circle cx={points[points.length - 1][0]} cy={points[points.length - 1][1]} r="2.5" fill={color} />
-        )}
-      </svg>
-      {showAxis && (
-        <div className="price-line__axis mono">
-          <span>{values[0]?.toFixed(2)}</span>
-          <span>{values[Math.floor(values.length / 2)]?.toFixed(2)}</span>
-          <span>{values[values.length - 1]?.toFixed(2)}</span>
-        </div>
-      )}
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: showAxis ? 24 : 8 }}>
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          {showAxis && (
+            <XAxis
+              dataKey="i"
+              tickFormatter={(i) => {
+                const ratio = i / (data.length - 1);
+                if (ratio <= 0.01) return values[0]?.toFixed(2);
+                if (ratio >= 0.99) return values[values.length - 1]?.toFixed(2);
+                if (Math.abs(ratio - 0.5) < 0.05) return values[Math.floor(data.length / 2)]?.toFixed(2);
+                return "";
+              }}
+              tick={{ fontSize: 10, fill: "var(--fg-faint)" }}
+              interval="preserveStartEnd"
+              axisLine={false}
+              tickLine={false}
+            />
+          )}
+          <Line
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            strokeWidth={1.6}
+            dot={false}
+            activeDot={{ r: 3, fill: color }}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }

@@ -1006,6 +1006,21 @@ def invest_kline():
     return jsonify(fetch_kline(symbol, period, rng))
 
 
+@app.route("/api/sparks")
+def invest_sparks():
+    """批量 sparkline:返回 {symbol: [close1, close2, ...]}"""
+    symbols = [s.strip() for s in (request.args.get("symbols") or "").split(",") if s.strip()]
+    if not symbols:
+        return jsonify({"error": "缺少 symbols 参数"}), 400
+    if len(symbols) > 20:
+        return jsonify({"error": "symbols 数量超过 20"}), 400
+    try:
+        days = int(request.args.get("days") or 30)
+    except ValueError:
+        days = 30
+    return jsonify({"items": fetch_sparks(symbols, days), "days": days, "ts": int(time.time() * 1000)})
+
+
 @app.route("/api/strategies")
 def invest_strategies_list():
     return jsonify({"items": list_strategies(), "ts": int(time.time() * 1000)})
@@ -1040,7 +1055,7 @@ import sqlite3
 import threading
 
 from server.invest_data import get_macro_universe, mock_quote
-from server.invest_quotes import fetch_quote, fetch_quotes, fetch_kline
+from server.invest_quotes import fetch_quote, fetch_quotes, fetch_kline, fetch_sparks
 from server.invest_strategies import (
     ensure_seeded as invest_ensure_seeded,
     list_strategies, get_strategy, compute_hits, history_hits,

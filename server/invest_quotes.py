@@ -145,5 +145,109 @@ def fetch_quotes(symbols):
 
 
 def fetch_kline(symbol, period="day", range_="3M"):
-    """K 线(本期未实现,占位)"""
-    return {"symbol": symbol, "period": period, "range": range_, "candles": [], "source": "mock", "ts": int(time.time() * 1000)}
+    """K 线数据,返回 [ts, open, close, high, low, vol] 数组"""
+    secid = EAST_MONEY_SECID.get(symbol)
+    if not secid:
+        return _fallback_kline(symbol, period, range_)
+
+    # period 映射到 eastmoney klt
+    klt_map = {"day": "101", "week": "102", "month": "103", "5min": "5", "15min": "15", "30min": "30", "60min": "60"}
+    klt = klt_map.get(period, "101")
+
+    # range 映射到 count
+    count_map = {"1W": 5, "1M": 22, "3M": 65, "6M": 130, "1Y": 250, "3Y": 750, "5Y": 1250}
+    count = count_map.get(range_, 65)
+
+    url = (
+        f"https://push2his.eastmoney.com/api/qt/stock/kline/get"
+        f"?secid={secid}&fields1=fqt&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59"
+        f"&klt={klt}&fqt=1&end=20500101&lmt={count}"
+    )
+    try:
+        j = _http_get_json(url, timeout=8)
+    except (urllib.error.URLError, TimeoutError, ValueError, Exception):
+        return _fallback_kline(symbol, period, count)
+
+    data = (j or {}).get("data") or {}
+    name = data.get("name") or symbol
+    klines = data.get("klines") or []
+    candles = []
+    for line in klines:
+        # line = "2024-01-02,open,close,high,low,vol,amount,amp,chg,chgAmt,turnover"
+        parts = line.split(",")
+        if len(parts) < 6:
+            continue
+        try:
+            # 日期可能是 "2024-01-02" 或时间戳
+            date_str = parts[0]
+            if "-" in date_str:
+                from datetime import datetime
+                ts = int(datetime.strptime(date_str, "%Y-%m-%d").timestamp() * 1000)
+            else:
+                ts = int(float(date_str))
+        except Exception:
+            continue
+        try:
+            o, c, h, l, v = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4]), float(parts[5])
+        except (ValueError, IndexError):
+            continue
+        candles.append([ts, o, c, h, l, v])
+
+    if not candles:
+        return _fallback_kline(symbol, period, count)
+
+    return {
+        "symbol": symbol,
+        "name": name,
+        "period": period,
+        "range": range_,
+        "candles": candles,
+        "source": "eastmoney",
+        "ts": int(time.time() * 1000),
+    }
+
+
+def _fallback_kline(symbol, period, range_):
+    """K 线兜底:用 mock 行情生成"""
+    from .invest_data import mock_quote
+    import random
+    base = mock_quote(symbol)
+    price = base["price"]
+    count_map = {"1W": 5, "1M": 22, "3M": 65, "6M": 130, "1Y": 250, "3Y": 750, "5Y": 1250}
+    count = count_map.get(range_, 65)
+    candles = []
+    now_ms = int(time.time() * 1000)
+    for i in range(count - 1, -1, -1):
+        drift = (random.random() - 0.5) * 0.04
+        p = price * (1 - drift * i / 30)
+        candles.append([now_ms - i * 86400000, p, p, p * 1.005, p * 0.995, 0])
+    return {
+        "symbol": symbol, "name": base["name"], "period": period, "range": range_,
+        "candles": candles, "source": "mock", "ts": now_ms,
+    }
+
+
+def fetch_spark(symbol, days=30):
+    """返回最近 N 天的收盘价数组(用于宏观卡 sparkline)"""
+    range_map = {5: "1W", 22: "1M", 65: "3M"}
+    rng = range_map.get(days, "3M")
+    k = fetch_kline(symbol, period="day", range_=rng)
+    closes = [c[2] for c in k.get("candles", [])][-days:]
+    if not closes:
+        from .invest_data import mock_quote
+        m = mock_quote(symbol)
+        closes = [m["price"]] * days
+    return closes
+
+
+def fetch_sparks(symbols, days=30):
+    """批量 sparkline"""
+    out = {}
+    for s in symbols:
+        try:
+            out[s] = fetch_spark(s, days)
+        except Exception:
+            from .invest_data import mock_quote
+            m = mock_quote(s)
+            out[s] = [m["price"]] * days
+    return out

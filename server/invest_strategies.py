@@ -7,7 +7,7 @@ import json
 import time
 
 from .invest_data import get_a_share_pool
-from .invest_quotes import fetch_quotes
+from .invest_quotes import fetch_quotes, fetch_kline
 
 STRATEGY_DEFS = [
     {
@@ -143,28 +143,32 @@ def compute_hits(slug):
 
 
 def history_hits(slug, range_days=30):
-    """历史回溯(伪时间序列)"""
+    """历史回溯:用真实 K 线(每只股票拉一次,取最近 N 天 close 当 signal_price)"""
     matched = _hits_for(slug)
     if not matched:
         return []
-    symbols = [m["symbol"] for m in matched]
-    quotes = fetch_quotes(symbols)
+    from .invest_quotes import fetch_kline
     out = []
-    now_ms = int(time.time() * 1000)
-    for d in range(range_days, 0, -1):
-        date = time.strftime("%Y-%m-%d", time.localtime(now_ms / 1000 - d * 24 * 3600))
-        for m, q in zip(matched, quotes):
-            data, source, ts = q
-            current = data.get("price", m["base"])
-            change_pct = data.get("changePct", 0)
-            signal_price = round(current * (1 - (change_pct / 100.0) * (d / range_days)), 2)
+    for m in matched:
+        # 每只股票单独拉 K 线(范围 3M 足够)
+        k = fetch_kline(m["symbol"], period="day", range_="3M")
+        candles = k.get("candles", [])
+        if not candles:
+            continue
+        # 取最近 range_days 天的 close
+        recent = candles[-range_days:] if len(candles) >= range_days else candles
+        current_price = candles[-1][2] if candles else m["base"]  # 最新 close
+        for c in recent:
+            ts, _o, close, _h, _l, _v = c
+            date = time.strftime("%Y-%m-%d", time.localtime(ts / 1000))
+            return_pct = round(((current_price - close) / close) * 100, 2) if close > 0 else 0
             out.append({
                 "symbol": m["symbol"],
                 "name": m["name"],
                 "signalDate": date,
-                "signalPrice": signal_price,
-                "currentPrice": round(current, 2),
-                "returnPct": round(((current - signal_price) / signal_price) * 100, 2) if signal_price > 0 else 0,
+                "signalPrice": round(close, 2),
+                "currentPrice": round(current_price, 2),
+                "returnPct": return_pct,
             })
     out.sort(key=lambda x: x["signalDate"], reverse=True)
     return out

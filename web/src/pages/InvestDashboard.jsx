@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../components/ToastHost.jsx";
 import { useIndices, useQuotes, useSignalsToday } from "../hooks/useQuote.js";
+import { api } from "../api.js";
 import MacroGrid from "../components/invest/MacroGrid.jsx";
 import IndexTicker from "../components/invest/IndexTicker.jsx";
 import WatchlistEditor from "../components/invest/WatchlistEditor.jsx";
@@ -30,6 +31,26 @@ function saveWatchlist(arr) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
 }
 
+// 真实 sparkline hook(从 /api/sparks 拉 30 天 close)
+function useSparks(symbols, days = 30) {
+  const [data, setData] = useState({ items: {}, loading: true });
+  const key = symbols.slice().sort().join(",");
+  useEffect(() => {
+    if (symbols.length === 0) {
+      setData({ items: {}, loading: false });
+      return;
+    }
+    let alive = true;
+    setData((d) => ({ ...d, loading: true }));
+    api.sparks(symbols, days)
+      .then((r) => { if (alive) setData({ items: r?.items || {}, loading: false }); })
+      .catch(() => { if (alive) setData((d) => ({ ...d, loading: false })); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, days]);
+  return data;
+}
+
 export default function InvestDashboard() {
   const [watchlist, setWatchlist] = useState(loadWatchlist);
   const toast = useToast();
@@ -45,21 +66,10 @@ export default function InvestDashboard() {
   const watchRows = quotesResp?.items || [];
   const signals = signalsResp?.items || [];
 
-  // 给宏观卡伪 sparkline(基于今日 changePct 衍生 8 个数据点)
-  const sparklineBySymbol = useMemo(() => {
-    const out = {};
-    for (const it of indices) {
-      const base = it.price || 100;
-      const change = it.changePct || 0;
-      const steps = 8;
-      out[it.symbol] = Array.from({ length: steps }, (_, i) => {
-        const t = i / (steps - 1);
-        // 模拟一天的价格曲线:线性从昨收到今价
-        return base * (1 - (change / 100) * (1 - t));
-      });
-    }
-    return out;
-  }, [indices]);
+  // 真实 sparkline:从 /api/sparks 拉 8 个标的最近 30 天 close
+  const macroSymbols = useMemo(() => indices.map((i) => i.symbol), [indices]);
+  const { items: sparks } = useSparks(macroSymbols, 30);
+  const sparklineBySymbol = sparks;
 
   const addStock = (sym) => {
     if (watchlist.includes(sym)) {

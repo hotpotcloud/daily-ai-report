@@ -54,12 +54,16 @@ export const api = {
   followAdd: (topic) => jpost("/api/me/follow", { topic }),
   followRemove: (topic) => jdel("/api/me/follow", { topic }),
 
-  // ─── 投资模块(invest v0.2)───────────────────
+  // ─── 投资模块(invest v0.3)───────────────────
   indices: () => jget("/api/indices"),
   quote: (symbol) => jget(`/api/quote?symbol=${encodeURIComponent(symbol)}`),
   quotes: (symbols) => {
     if (!symbols || symbols.length === 0) return Promise.resolve({ items: [], ts: 0 });
     return jget(`/api/quotes?symbols=${encodeURIComponent(symbols.join(","))}`);
+  },
+  sparks: (symbols, days = 30) => {
+    if (!symbols || symbols.length === 0) return Promise.resolve({ items: {}, days, ts: 0 });
+    return jget(`/api/sparks?symbols=${encodeURIComponent(symbols.join(","))}&days=${days}`);
   },
   kline: (symbol, period = "day", range = "3M") =>
     jget(`/api/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&range=${range}`),
