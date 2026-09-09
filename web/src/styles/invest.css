@@ -95,6 +95,18 @@
 .invest__down { color: var(--down); }
 .invest__flat { color: var(--fg-dim); }
 
+/* 锁住数字宽度,防止涨跌数字变化导致 reflow */
+.macro-card__price,
+.macro-card__change,
+.index-ticker__price,
+.index-ticker__chg,
+.watchlist-table .num,
+.hits-table .num,
+.format-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
 /* ── 宏观卡 ──────────────────────────────────────── */
 .macro-grid {
   display: grid;
