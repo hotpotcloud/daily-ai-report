@@ -38,6 +38,7 @@ export default function Topbar() {
           <NavLink className={({isActive}) => "topbar__item" + (isActive ? " is-active" : "")} to="/category/tech">科技</NavLink>
           <NavLink className={({isActive}) => "topbar__item" + (isActive ? " is-active" : "")} to="/category/market">市场</NavLink>
           <NavLink className={({isActive}) => "topbar__item" + (isActive ? " is-active" : "")} to="/category/policy">政策</NavLink>
+          <NavLink className={({isActive}) => "topbar__item" + (isActive ? " is-active" : "")} to="/invest/dashboard">投资</NavLink>
           <NavLink className={({isActive}) => "topbar__item topbar__item--menu" + (isActive ? " is-active" : "")} to="/archive">报告库
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </NavLink>

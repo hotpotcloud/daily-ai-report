@@ -7,6 +7,12 @@ on:
     paths:
       - "app.py"
       - "public/**"
+      - "server/**"
+      - "web/src/**"
+      - "web/package.json"
+      - "web/package-lock.json"
+      - "web/vite.config.js"
+      - "web/index.html"
       - "deploy/install-server.sh"
       - ".github/workflows/deploy-frontend.yml"
 
@@ -16,13 +22,26 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend (Vite + React)
+        run: |
+          cd web
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm run build
+          ls -la dist
+          cd ..
 
       - name: Setup SSH key
         run: |
@@ -39,17 +58,29 @@ jobs:
       - name: Prepare server directory
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
-            "mkdir -p /opt/daily-ai-briefing/data /opt/daily-ai-briefing/public /opt/daily-ai-briefing/server /tmp/daily-ai-briefing-deploy"
+            "mkdir -p /opt/daily-ai-briefing/data /opt/daily-ai-briefing/public /opt/daily-ai-briefing/server /opt/daily-ai-briefing/web/dist /tmp/daily-ai-briefing-deploy"
 
       - name: Push backend (app.py)
         run: |
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             app.py root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/app.py
 
-      - name: Push frontend code
+      - name: Push backend modules (server/)
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
+            server/. root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/server/
+
+      - name: Push public static files
         run: |
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
             public/* root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/public/
+
+      - name: Push web/dist (React build)
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "rm -rf /opt/daily-ai-briefing/web/dist/*"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r \
+            web/dist/. root@${{ secrets.SERVER_IP }}:/opt/daily-ai-briefing/web/dist/
 
       - name: Push install script
         run: |
@@ -86,8 +117,14 @@ jobs:
             "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/" 2>&1 || echo "fail")
           echo "- / (index.html) status: $RESP2" >> $GITHUB_STEP_SUMMARY
           RESP3=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/api/indices" 2>&1 || echo "fail")
+          echo "- /api/indices (invest) status: $RESP3" >> $GITHUB_STEP_SUMMARY
+          RESP4=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
+            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/api/strategies" 2>&1 || echo "fail")
+          echo "- /api/strategies (invest) status: $RESP4" >> $GITHUB_STEP_SUMMARY
+          RESP5=$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} \
             "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3535/chat.html" 2>&1 || echo "fail")
-          echo "- /chat.html status: $RESP3" >> $GITHUB_STEP_SUMMARY
+          echo "- /chat.html status: $RESP5" >> $GITHUB_STEP_SUMMARY
 
       - name: Deployment summary
         if: always()
@@ -95,6 +132,7 @@ jobs:
           echo "### Deployment info" >> $GITHUB_STEP_SUMMARY
           echo "- Server: ${{ secrets.SERVER_IP }}:3535" >> $GITHUB_STEP_SUMMARY
           echo "- Public URL: http://${{ secrets.SERVER_IP }}:3535/" >> $GITHUB_STEP_SUMMARY
+          echo "- Invest URL: http://${{ secrets.SERVER_IP }}:3535/invest" >> $GITHUB_STEP_SUMMARY
           echo "- Chat URL: http://${{ secrets.SERVER_IP }}:3535/chat.html" >> $GITHUB_STEP_SUMMARY
           echo "- API: http://${{ secrets.SERVER_IP }}:3535/api/health" >> $GITHUB_STEP_SUMMARY
           echo "- Job status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

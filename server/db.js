@@ -63,6 +63,53 @@ export function initDb() {
       WHERE id = OLD.id;
     END;
   `);
+
+  // ─── invest 模块(v0.2)新增 3 张表 ─────────────────────────
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quote_cache (
+      symbol TEXT PRIMARY KEY,
+      payload TEXT NOT NULL,
+      source TEXT NOT NULL,
+      fetched_at INTEGER NOT NULL
+    );
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_quote_cache_fetched_at
+    ON quote_cache(fetched_at);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS strategies (
+      slug TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      category TEXT,
+      philosophy TEXT,
+      rules TEXT,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS strategy_hits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      strategy_slug TEXT NOT NULL,
+      symbol TEXT NOT NULL,
+      name TEXT,
+      signal_date TEXT NOT NULL,
+      signal_price REAL,
+      current_price REAL,
+      return_pct REAL,
+      note TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (strategy_slug) REFERENCES strategies(slug)
+    );
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_strategy_hits_slug_date
+    ON strategy_hits(strategy_slug, signal_date);
+  `);
 }
 
 export function upsertDigest(digest) {

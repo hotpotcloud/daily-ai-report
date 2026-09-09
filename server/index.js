@@ -4,6 +4,16 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { getLatestDigest, initDb, listDigests, upsertDigest } from "./db.js";
 import { callChat, streamChat } from "./chat.js";
+import { fetchQuote, fetchQuotes, fetchKline } from "./quotes.js";
+import { fetchIndices } from "./macro.js";
+import {
+  ensureStrategySeeded,
+  listStrategies,
+  getStrategy,
+  computeHits,
+  historyHits
+} from "./strategies.js";
+import { todaySignals } from "./signals.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +22,7 @@ const landingDir = path.resolve(__dirname, "../landing");
 const sharedDir = path.resolve(__dirname, "../shared");
 
 initDb();
+ensureStrategySeeded();
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
@@ -133,6 +144,125 @@ const server = http.createServer(async (req, res) => {
           // ignore
         }
       }
+    }
+    return;
+  }
+
+  // ─── invest 模块路由 ─────────────────────────────────────
+
+  if (pathname === "/api/indices" && req.method === "GET") {
+    try {
+      const items = await fetchIndices();
+      sendJson(res, 200, { items, ts: Date.now() });
+    } catch (e) {
+      console.error("[indices] error:", e);
+      sendJson(res, 500, { message: e?.message || "indices 失败" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/quotes" && req.method === "GET") {
+    const symbols = (searchParams.get("symbols") || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (symbols.length === 0) {
+      sendJson(res, 400, { message: "缺少 symbols 参数" });
+      return;
+    }
+    if (symbols.length > 50) {
+      sendJson(res, 400, { message: "symbols 数量超过 50" });
+      return;
+    }
+    try {
+      const results = await fetchQuotes(symbols);
+      sendJson(res, 200, {
+        items: results.map((r) => ({ ...r.data, source: r.source, fetchedAt: r.ts })),
+        ts: Date.now()
+      });
+    } catch (e) {
+      console.error("[quotes] error:", e);
+      sendJson(res, 500, { message: e?.message || "quotes 失败" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/quote" && req.method === "GET") {
+    const symbol = (searchParams.get("symbol") || "").trim();
+    if (!symbol) {
+      sendJson(res, 400, { message: "缺少 symbol 参数" });
+      return;
+    }
+    try {
+      const r = await fetchQuote(symbol);
+      sendJson(res, 200, { ...r.data, source: r.source, fetchedAt: r.ts });
+    } catch (e) {
+      console.error("[quote] error:", e);
+      sendJson(res, 500, { message: e?.message || "quote 失败" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/kline" && req.method === "GET") {
+    const symbol = (searchParams.get("symbol") || "").trim();
+    const period = searchParams.get("period") || "day";
+    const range = searchParams.get("range") || "3M";
+    if (!symbol) {
+      sendJson(res, 400, { message: "缺少 symbol 参数" });
+      return;
+    }
+    try {
+      const r = await fetchKline(symbol, period, range);
+      sendJson(res, 200, r);
+    } catch (e) {
+      sendJson(res, 500, { message: e?.message || "kline 失败" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/strategies" && req.method === "GET") {
+    sendJson(res, 200, { items: listStrategies(), ts: Date.now() });
+    return;
+  }
+
+  // /api/strategies/:slug/history
+  const strategyHistoryMatch = pathname.match(/^\/api\/strategies\/([^/]+)\/history$/);
+  if (strategyHistoryMatch && req.method === "GET") {
+    const slug = strategyHistoryMatch[1];
+    const range = Number.parseInt(searchParams.get("range") || "30", 10);
+    try {
+      const hits = await historyHits(slug, Number.isNaN(range) ? 30 : range);
+      sendJson(res, 200, { slug, hits, ts: Date.now() });
+    } catch (e) {
+      sendJson(res, 500, { message: e?.message || "history 失败" });
+    }
+    return;
+  }
+
+  // /api/strategies/:slug
+  const strategyDetailMatch = pathname.match(/^\/api\/strategies\/([^/]+)$/);
+  if (strategyDetailMatch && req.method === "GET") {
+    const slug = strategyDetailMatch[1];
+    const meta = getStrategy(slug);
+    if (!meta) {
+      sendJson(res, 404, { message: "策略不存在" });
+      return;
+    }
+    try {
+      const hits = await computeHits(slug);
+      sendJson(res, 200, { ...meta, hits, ts: Date.now() });
+    } catch (e) {
+      sendJson(res, 500, { message: e?.message || "strategy 失败" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/signals/today" && req.method === "GET") {
+    try {
+      const items = todaySignals();
+      sendJson(res, 200, { items, ts: Date.now() });
+    } catch (e) {
+      sendJson(res, 500, { message: e?.message || "signals 失败" });
     }
     return;
   }

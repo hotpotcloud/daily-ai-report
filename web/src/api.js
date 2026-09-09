@@ -52,7 +52,22 @@ export const api = {
   collectionsRemove: (id) => jdel("/api/me/collections", { item: { id } }),
   followList: () => jget("/api/me/follow"),
   followAdd: (topic) => jpost("/api/me/follow", { topic }),
-  followRemove: (topic) => jdel("/api/me/follow", { topic })
+  followRemove: (topic) => jdel("/api/me/follow", { topic }),
+
+  // ─── 投资模块(invest v0.2)───────────────────
+  indices: () => jget("/api/indices"),
+  quote: (symbol) => jget(`/api/quote?symbol=${encodeURIComponent(symbol)}`),
+  quotes: (symbols) => {
+    if (!symbols || symbols.length === 0) return Promise.resolve({ items: [], ts: 0 });
+    return jget(`/api/quotes?symbols=${encodeURIComponent(symbols.join(","))}`);
+  },
+  kline: (symbol, period = "day", range = "3M") =>
+    jget(`/api/kline?symbol=${encodeURIComponent(symbol)}&period=${period}&range=${range}`),
+  strategies: () => jget("/api/strategies"),
+  strategy: (slug) => jget(`/api/strategies/${slug}`),
+  strategyHistory: (slug, range = 30) =>
+    jget(`/api/strategies/${slug}/history?range=${range}`),
+  signalsToday: () => jget("/api/signals/today")
 };
 
 export async function chatStream(messages, onDelta) {

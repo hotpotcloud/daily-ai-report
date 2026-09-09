@@ -4,6 +4,10 @@ import ArchivePage from "./pages/ArchivePage.jsx";
 import TopicPage from "./pages/TopicPage.jsx";
 import CategoryPage from "./pages/CategoryPage.jsx";
 import MePage from "./pages/MePage.jsx";
+import InvestPage from "./pages/InvestPage.jsx";
+import InvestDashboard from "./pages/InvestDashboard.jsx";
+import InvestStrategies from "./pages/InvestStrategies.jsx";
+import InvestStrategyDetail from "./pages/InvestStrategyDetail.jsx";
 import Topbar from "./components/Topbar.jsx";
 import Chat from "./components/Chat.jsx";
 import Footer from "./components/Footer.jsx";
@@ -19,6 +23,12 @@ export default function App() {
           <Route path="/topic/:slug" element={<TopicPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/me" element={<MePage />} />
+          <Route path="/invest" element={<InvestPage />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<InvestDashboard />} />
+            <Route path="strategies" element={<InvestStrategies />} />
+            <Route path="strategies/:slug" element={<InvestStrategyDetail />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

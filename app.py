@@ -11,6 +11,7 @@ import json
 import re
 import html
 import secrets
+import time
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -959,10 +960,92 @@ def archive_list():
             pass
     return jsonify({"items": out, "count": len(out)})
 
+# ─── 投资模块路由(invest v0.2)─────────────────────────
+
+@app.route("/api/indices")
+def invest_indices():
+    """8 个宏观标的:5 指数 + 3 商品"""
+    universe = get_macro_universe()
+    results = fetch_quotes([u["symbol"] for u in universe])
+    items = []
+    for u, (data, source, ts) in zip(universe, results):
+        items.append({**data, "kind": u["kind"], "fetchedAt": ts, "source": source})
+    return jsonify({"items": items, "ts": int(time.time() * 1000)})
+
+
+@app.route("/api/quote")
+def invest_quote_one():
+    symbol = (request.args.get("symbol") or "").strip()
+    if not symbol:
+        return jsonify({"error": "缺少 symbol 参数"}), 400
+    data, source, ts = fetch_quote(symbol)
+    return jsonify({**data, "source": source, "fetchedAt": ts})
+
+
+@app.route("/api/quotes")
+def invest_quotes():
+    symbols = [s.strip() for s in (request.args.get("symbols") or "").split(",") if s.strip()]
+    if not symbols:
+        return jsonify({"error": "缺少 symbols 参数"}), 400
+    if len(symbols) > 50:
+        return jsonify({"error": "symbols 数量超过 50"}), 400
+    results = fetch_quotes(symbols)
+    items = []
+    for (data, source, ts) in results:
+        items.append({**data, "source": source, "fetchedAt": ts})
+    return jsonify({"items": items, "ts": int(time.time() * 1000)})
+
+
+@app.route("/api/kline")
+def invest_kline():
+    symbol = (request.args.get("symbol") or "").strip()
+    if not symbol:
+        return jsonify({"error": "缺少 symbol 参数"}), 400
+    period = request.args.get("period") or "day"
+    rng = request.args.get("range") or "3M"
+    return jsonify(fetch_kline(symbol, period, rng))
+
+
+@app.route("/api/strategies")
+def invest_strategies_list():
+    return jsonify({"items": list_strategies(), "ts": int(time.time() * 1000)})
+
+
+@app.route("/api/strategies/<slug>/history")
+def invest_strategy_history(slug):
+    try:
+        rng = int(request.args.get("range") or "30")
+    except ValueError:
+        rng = 30
+    hits = history_hits(slug, rng)
+    return jsonify({"slug": slug, "hits": hits, "ts": int(time.time() * 1000)})
+
+
+@app.route("/api/strategies/<slug>")
+def invest_strategy_detail(slug):
+    meta = get_strategy(slug)
+    if not meta:
+        return jsonify({"error": "策略不存在"}), 404
+    hits = compute_hits(slug)
+    return jsonify({**meta, "hits": hits, "ts": int(time.time() * 1000)})
+
+
+@app.route("/api/signals/today")
+def invest_signals_today():
+    return jsonify({"items": invest_today_signals(), "ts": int(time.time() * 1000)})
+
 # ---------- 用户数据持久化(SQLite · Python stdlib,易迁移) ----------
 
 import sqlite3
 import threading
+
+from server.invest_data import get_macro_universe, mock_quote
+from server.invest_quotes import fetch_quote, fetch_quotes, fetch_kline
+from server.invest_strategies import (
+    ensure_seeded as invest_ensure_seeded,
+    list_strategies, get_strategy, compute_hits, history_hits,
+)
+from server.invest_signals import today_signals as invest_today_signals
 
 DB_PATH = os.path.join(APP_DIR, "data", "users.db")
 _db_lock = threading.Lock()
@@ -1010,8 +1093,47 @@ def _db_init_schema(conn):
         PRIMARY KEY (provider, external_id, topic)
     );
     CREATE INDEX IF NOT EXISTS idx_followed_user ON followed_topics(provider, external_id);
+
+    -- ─── invest 模块(v0.2)新增 3 张表 ─────────────────────────
+    CREATE TABLE IF NOT EXISTS quote_cache (
+        symbol TEXT PRIMARY KEY,
+        payload TEXT NOT NULL,
+        source TEXT NOT NULL,
+        fetched_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_quote_cache_fetched_at ON quote_cache(fetched_at);
+    CREATE TABLE IF NOT EXISTS strategies (
+        slug TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        subtitle TEXT,
+        category TEXT,
+        philosophy TEXT,
+        rules TEXT,
+        created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS strategy_hits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        strategy_slug TEXT NOT NULL,
+        symbol TEXT NOT NULL,
+        name TEXT,
+        signal_date TEXT NOT NULL,
+        signal_price REAL,
+        current_price REAL,
+        return_pct REAL,
+        note TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (strategy_slug) REFERENCES strategies(slug)
+    );
+    CREATE INDEX IF NOT EXISTS idx_strategy_hits_slug_date ON strategy_hits(strategy_slug, signal_date);
     """)
     conn.commit()
+
+
+# ─── 投资模块启动 seed(幂等)───────────────────────────
+try:
+    invest_ensure_seeded(_db())
+except Exception as _e:
+    print("[invest] seed warning:", _e)
 
 def _user_upsert_from_session(conn):
     """把 session['user'] 同步到 users 表(如果字段变化就更新)"""
